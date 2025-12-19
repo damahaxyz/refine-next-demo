@@ -1,0 +1,47 @@
+{
+  "name": "refine-project",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "cross-env NODE_OPTIONS=--max_old_space_size=4096 refine dev",
+    "build": "refine build",
+    "start": "refine start",
+    "lint": "next lint",
+    "refine": "refine"
+  },
+  "dependencies": {
+    "@refinedev/cli": "^2.16.48",
+    "@refinedev/core": "^5.0.0",
+    "@refinedev/devtools": "^2.0.1",
+    "@refinedev/kbar": "^2.0.0",
+    "@refinedev/nextjs-router": "^7.0.0",
+    "@refinedev/react-hook-form": "^5.0.0",
+    "@refinedev/react-table": "^6.0.0",
+    "@refinedev/simple-rest": "^6.0.0",
+    "@tanstack/react-table": "^8.2.6",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.1.3",
+    "js-cookie": "^3.0.5",
+    "mongoose": "^9.0.2",
+    "next": "^16.1.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/js-cookie": "^3.0.6",
+    "@types/node": "^20",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^8",
+    "eslint-config-next": "^16.1.0",
+    "typescript": "^5.8.3"
+  },
+  "refine": {
+    "projectId": "yU83yD-sNVuKy-qGcWda"
+  }
+}
