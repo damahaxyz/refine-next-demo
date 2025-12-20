@@ -2,19 +2,19 @@
 export const resources = [
     {
         name: "dashboard",
-        list: "/dashboard",
+        list: "/admin/dashboard",
     },
     {
         name: "accounts",
-        list: "/accounts"
+        list: "/admin/accounts"
     },
     {
         name: "roles",
-        list: "/roles"
+        list: "/admin/roles"
     },
     {
         name: "sys_configs",
-        list: "/sys_configs",
+        list: "/admin/sys_configs",
     },
 
 ]

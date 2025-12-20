@@ -33,7 +33,7 @@ export const authProvider: AuthProvider = {
         }
         return {
           success: true,
-          redirectTo: "/",
+          redirectTo: "/admin/dashboard",
           successNotification: {
             message: "Wellcome back!",
             description: "You have successfully logged in.",
@@ -63,7 +63,7 @@ export const authProvider: AuthProvider = {
       if (res?.code === 0) {
         return {
           success: true,
-          redirectTo: "/login",
+          redirectTo: "/admin/login",
           successNotification: {
             message: "Registration Successful",
             description: "Please log in with your new account.",
@@ -97,7 +97,7 @@ export const authProvider: AuthProvider = {
     }
     return {
       success: true,
-      redirectTo: "/login",
+      redirectTo: "/admin/login",
     };
   },
   check: async () => {
@@ -110,7 +110,7 @@ export const authProvider: AuthProvider = {
 
     return {
       authenticated: false,
-      redirectTo: "/login",
+      redirectTo: "/admin/login",
     };
   },
   getPermissions: async () => {

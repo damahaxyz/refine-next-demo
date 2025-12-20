@@ -72,7 +72,7 @@ export async function middleware(request: NextRequest) {
 
             // 跳过公共资源或系统管理员的权限检查
             // 还需要处理动作未定义的情况（例如 OPTIONS）
-            if (action && !userPermissions.includes(requiredPermission) && !userPermissions.includes('admin')) {
+            if (action && !userPermissions.includes(requiredPermission) && payload.username !== "root") {
 
                 const isExempt = noPermissionRequiredPaths.some(p => p.path === path && p.method === request.method);
 

@@ -43,7 +43,7 @@ export const menuConfig: SidebarData = {
       items: [
         {
           title: '首页',
-          url: '/dashboard',
+          url: '/admin/dashboard',
           icon: LayoutDashboard,
           element: Dashboard,
         }
@@ -59,7 +59,7 @@ export const menuConfig: SidebarData = {
           items: [
             {
               title: '系统配置',
-              url: '/sys_configs',
+              url: '/admin/sys_configs',
               icon: Cog,
               permission: "SYS-CONFIG-VIEW",
               element: SysConfigList,
@@ -72,14 +72,14 @@ export const menuConfig: SidebarData = {
           items: [
             {
               title: '账户',
-              url: '/accounts',
+              url: '/admin/accounts',
               icon: UserRoundCog,
               element: AccountList,
               permission: "ACCOUNT-VIEW"
             },
             {
               title: '角色',
-              url: '/roles',
+              url: '/admin/roles',
               icon: KeySquare,
               element: RoleList,
               permission: "ROLE-VIEW"

@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 import { DataTableViewOptions } from "./data-table-view-options"
 import { Input } from "../ui/input";
 import { UseTableReturnType } from "@refinedev/react-table";
-import { SelectDropdownCommandMutiple } from "../select-dropdown-command-mutiple";
-import { SelectDropdownCommand } from "../select-dropdown-command";
+import { SelectDropdownCommandMutiple } from "../custom/select-dropdown-command-mutiple";
+import { SelectDropdownCommand } from "../custom/select-dropdown-command";
 import { useCallback } from "react";
 import { Column } from "@tanstack/react-table";
 

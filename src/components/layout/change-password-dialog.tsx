@@ -23,9 +23,9 @@ import {
 } from "@/components/ui/form";
 
 import { Button } from "@/components/ui/button";
-import { InputPassword } from "../input-password";
 import { useUpdatePassword } from "@refinedev/core";
 import { GlobalDialog } from "@/lib/dialog";
+import { InputPassword } from "@components/custom/input-password";
 
 // -----------------------------
 // 🔐 Zod 校验规则
@@ -43,7 +43,7 @@ const schema = z
 type ChangePasswordFormData = z.infer<typeof schema>;
 // -----------------------------
 
-export const ChangePasswordDialog = ({open, onOpenChange}: any) => {
+export const ChangePasswordDialog = ({ open, onOpenChange }: any) => {
 
   const { mutateAsync: updatePassword } = useUpdatePassword();
   // const { mutate: logout } = useLogout();
@@ -67,10 +67,10 @@ export const ChangePasswordDialog = ({open, onOpenChange}: any) => {
     let data = await updatePassword(values, {});
     let res: any = data.res;
 
-    if(res.code == 0){
-       await GlobalDialog.success("成功", "修改密码成功！");
-     
-    }else{
+    if (res.code == 0) {
+      await GlobalDialog.success("成功", "修改密码成功！");
+
+    } else {
       await GlobalDialog.error("错误", res.message);
     }
     onOpenChange(false);
@@ -89,7 +89,7 @@ export const ChangePasswordDialog = ({open, onOpenChange}: any) => {
             className="space-y-4 pt-2"
           >
             {/* 原密码 */}
-            <FormField control={form.control} name="oldPassword" render={({field}) => (
+            <FormField control={form.control} name="oldPassword" render={({ field }) => (
               <FormItem>
                 <FormLabel>原密码</FormLabel>
                 <FormControl>
@@ -100,10 +100,10 @@ export const ChangePasswordDialog = ({open, onOpenChange}: any) => {
                 </FormControl>
                 <FormMessage />
               </FormItem>
-            )}/>
+            )} />
 
-             {/* 原密码 */}
-            <FormField control={form.control} name="newPassword" render={({field}) => (
+            {/* 原密码 */}
+            <FormField control={form.control} name="newPassword" render={({ field }) => (
               <FormItem>
                 <FormLabel>新密码</FormLabel>
                 <FormControl>
@@ -114,12 +114,12 @@ export const ChangePasswordDialog = ({open, onOpenChange}: any) => {
                 </FormControl>
                 <FormMessage />
               </FormItem>
-            )}/>
+            )} />
 
-           
+
 
             {/* 确认密码 */}
-            <FormField control={form.control} name="confirmPassword" render={({field}) => (
+            <FormField control={form.control} name="confirmPassword" render={({ field }) => (
               <FormItem>
                 <FormLabel>原密码</FormLabel>
                 <FormControl>
@@ -130,7 +130,7 @@ export const ChangePasswordDialog = ({open, onOpenChange}: any) => {
                 </FormControl>
                 <FormMessage />
               </FormItem>
-            )}/>
+            )} />
 
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
