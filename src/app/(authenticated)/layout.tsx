@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             key="authenticated-inner"
             fallback={<div>Not Authenticated</div>}
         >
-            <AuthenticatedLayout>
+            <AuthenticatedLayout>   
                 {children}
             </AuthenticatedLayout>
         </Authenticated>

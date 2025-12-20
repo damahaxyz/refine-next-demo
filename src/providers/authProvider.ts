@@ -1,5 +1,5 @@
 import type { AuthProvider } from "@refinedev/core";
-import { post } from "./http";
+import { post, get } from "./http";
 
 const API_URL = "";
 
@@ -20,7 +20,7 @@ export const authProvider: AuthProvider = {
     let errorMessage: string = "";
     if (username && password) {
 
-      const res: LoginResponse = await post(`${API_URL}/api/auth/login`, {
+      const res: LoginResponse = await post(`${API_URL}/api/accounts/login`, {
         username,
         password
       });
@@ -54,7 +54,7 @@ export const authProvider: AuthProvider = {
   },
   register: async ({ username, email, password }: any) => {
     try {
-      const res = await post(`${API_URL}/api/auth/register`, {
+      const res = await post(`${API_URL}/api/accounts/register`, {
         username,
         email,
         password,
@@ -113,7 +113,18 @@ export const authProvider: AuthProvider = {
       redirectTo: "/login",
     };
   },
-  getPermissions: async () => null,
+  getPermissions: async () => {
+    try {
+      const res = await get(`${API_URL}/api/permissions`);
+      if (res?.code === 0) {
+        return res.data;
+      }
+      return null;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  },
   getIdentity: async () => {
     // const token = localStorage.getItem(TOKEN_KEY);
     const user = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;

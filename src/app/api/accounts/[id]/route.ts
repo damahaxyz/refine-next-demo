@@ -9,6 +9,8 @@ const handlers = createCrudHandlers({
     onBeforeUpdate: async (id, data: any) => {
         if (data.password) {
             data.password = await hash(data.password, 10);
+        } else {
+            delete data.password;
         }
         return data;
     }

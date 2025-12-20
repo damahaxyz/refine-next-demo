@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Account from "@/models/account";
 import bcrypt from "bcryptjs";
+import { signToken } from "@/lib/auth";
+import { getUserPermissions } from "@/services/permission";
 
 export async function POST(request: Request) {
     try {
@@ -27,9 +29,12 @@ export async function POST(request: Request) {
             });
         }
 
-        // In a real production app, generate a JWT here.
-        // For this demo, we'll return a mock token but real user data.
-        const token = "mock-token-" + account._id;
+        const permissions = await getUserPermissions(account._id);
+        const token = await signToken({
+            userId: account._id,
+            sub: account.username,
+            permissions
+        });
 
         return NextResponse.json({
             code: 0,
@@ -39,7 +44,8 @@ export async function POST(request: Request) {
                 username: account.username,
                 name: account.name || account.username,
                 roles: account.roles,
-                avatar: account.avatar || "https://i.pravatar.cc/150?img=3"
+                avatar: account.avatar || "https://i.pravatar.cc/150?img=3",
+                permissions: await getUserPermissions(account._id),
             },
         });
     } catch (error: any) {
