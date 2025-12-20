@@ -5,6 +5,7 @@ import { baseSchemaOptions } from "./base";
 const AccountSchema = new Schema(
     {
         username: { type: String, required: true, unique: true },
+        email: { type: String },
         password: { type: String, required: true, select: false },
         name: { type: String },
         avatar: { type: String },

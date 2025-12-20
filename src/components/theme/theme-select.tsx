@@ -1,0 +1,87 @@
+"use client";
+
+import React from "react";
+import { useTheme } from "./theme-provider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Moon, Sun, Monitor, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type ThemeOption = {
+  value: "light" | "dark" | "system";
+  label: string;
+  icon: React.ReactNode;
+};
+
+const themeOptions: ThemeOption[] = [
+  {
+    value: "light",
+    label: "Light",
+    icon: <Sun className="h-4 w-4" />,
+  },
+  {
+    value: "dark",
+    label: "Dark",
+    icon: <Moon className="h-4 w-4" />,
+  },
+  {
+    value: "system",
+    label: "System",
+    icon: <Monitor className="h-4 w-4" />,
+  },
+];
+
+export function ThemeSelect() {
+  const { theme, setTheme } = useTheme();
+
+  const currentTheme = themeOptions.find((option) => option.value === theme);
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="ghost"
+          size={"icon"}
+          className={cn(
+            "rounded-full",
+            "p-2",)}
+        >
+          <div className="flex items-center gap-">
+            {currentTheme?.icon}
+          </div>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-40 space-y-1">
+        {themeOptions.map((option) => {
+          const isSelected = theme === option.value;
+
+          return (
+            <DropdownMenuItem
+              key={option.value}
+              onClick={() => setTheme(option.value)}
+              className={cn(
+                "flex items-center gap-2 cursor-pointer relative pr-8",
+                {
+                  "bg-accent text-accent-foreground": isSelected,
+                },
+              )}
+            >
+              {option.icon}
+              <span>{option.label}</span>
+              {isSelected && (
+                <Check className="h-4 w-4 absolute right-2 text-primary" />
+              )}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+ThemeSelect.displayName = "ThemeSelect";

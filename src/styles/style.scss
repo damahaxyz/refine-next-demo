@@ -1,0 +1,6 @@
+main.container {
+  padding: 0!important;
+    @media (width >= 96rem) {
+        max-width: unset;
+    }
+}

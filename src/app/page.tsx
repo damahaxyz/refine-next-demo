@@ -1,16 +1,12 @@
 "use client";
 
-import { Suspense } from "react";
-
-import { NavigateToResource } from "@refinedev/nextjs-router";
 import { Authenticated } from "@refinedev/core";
+import { NavigateToResource } from "@refinedev/nextjs-router";
 
-export default function IndexPage() {
+export default function Home() {
   return (
-    <Suspense>
-      <Authenticated key="home-page">
-        <NavigateToResource />
-      </Authenticated>
-    </Suspense>
+    <Authenticated key="home-auth" fallback={<NavigateToResource resource="dashboard" />}>
+      <NavigateToResource resource="dashboard" />
+    </Authenticated>
   );
 }

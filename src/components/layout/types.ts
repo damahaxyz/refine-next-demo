@@ -1,0 +1,48 @@
+import { LinkProps } from "next/link"
+
+type User = {
+  name: string
+  email: string
+  avatar: string
+}
+
+type Team = {
+  name: string
+  logo: React.ElementType
+  plan: string
+}
+
+type BaseNavItem = {
+  title: string
+  badge?: string
+  icon?: React.ElementType
+  element?: React.ElementType
+  type?: 'hidden' | 'default'
+  permission?: string
+}
+
+type NavLink = BaseNavItem & {
+  url: LinkProps['href'] | (string & {})
+  items?: never
+}
+
+type NavCollapsible = BaseNavItem & {
+  items: (BaseNavItem & { url: LinkProps['href'] | (string & {}) })[]
+  url?: never
+}
+
+type NavItem = NavCollapsible | NavLink
+
+type NavGroup = {
+  title: string
+  items: NavItem[]
+
+}
+
+type SidebarData = {
+  // user: User
+  // teams: Team[]
+  navGroups: NavGroup[]
+}
+
+export type { SidebarData, NavGroup, NavItem, NavCollapsible, NavLink }
