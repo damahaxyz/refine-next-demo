@@ -1,4 +1,4 @@
-import { useGlobalDialog } from "@/components/global-dialog";
+import { useGlobalDialog } from "@/components/custom/global-dialog";
 
 export const GlobalDialog = {
   info: (title: any, message?: any, opt = {}) =>

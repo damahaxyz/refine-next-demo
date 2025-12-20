@@ -1,7 +1,7 @@
 import { usePageAction } from "@/components/page/page-action-provider";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { SysConfig } from "@/components/pages/type";
+import { SysConfig } from "./types";
 import { CanAccess } from "@refinedev/core";
 
 export function SysConfigPrimaryActions() {

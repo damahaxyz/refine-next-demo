@@ -1,7 +1,7 @@
 import { usePageAction } from "@/components/page/page-action-provider";
 import { Button } from "@/components/ui/button";
-import { DeleteButton } from "@/components/resource-delete-button";
-import { SysConfig } from "@/components/pages/type";
+import { DeleteButton } from "@/components/custom/resource-delete-button";
+import { SysConfig } from "./types";
 import { Trash2 } from "lucide-react";
 import { CanAccess } from "@refinedev/core";
 

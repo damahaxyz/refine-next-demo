@@ -15,8 +15,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "@refinedev/react-hook-form";
 import { Button } from '@/components/ui/button';
 import { usePageAction } from '@/components/page/page-action-provider';
-import { Account } from '../type';
-import { SelectDropdownCommandMutiple } from '@/components/select-dropdown-command-mutiple';
+import { Account } from "./types";
+import { SelectDropdownCommandMutiple } from '@/components/custom/select-dropdown-command-mutiple';
 import { PermissionTree } from '../roles/premission-tree';
 
 const AccountEditSheetPropsSchema = z.object({

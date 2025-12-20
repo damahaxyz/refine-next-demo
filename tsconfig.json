@@ -26,6 +26,9 @@
       "@*": [
         "./src/*"
       ],
+      "@modules/*": [
+        "./src/modules/*"
+      ],
       "@pages/*": [
         "./pages/*"
       ]

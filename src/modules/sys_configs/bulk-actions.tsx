@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { BaseRecord, CanAccess, HttpError, useDeleteMany } from "@refinedev/core";
 import { UseTableReturnType } from "@refinedev/react-table";
 import { Trash2 } from "lucide-react";
-import { SysConfig } from "@/components/pages/type";
+import { SysConfig } from "./types";
 import { GlobalDialog } from "@/lib/dialog";
 
 type SysConfigBulkActionsProps<TData extends BaseRecord> = {

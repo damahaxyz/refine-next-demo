@@ -1,4 +1,4 @@
-import { ConfirmDialog } from '@/components/confirm-dialog'
+import { ConfirmDialog } from '@/components/custom/confirm-dialog'
 import { useLogout } from '@refinedev/core'
 
 interface SignOutDialogProps {

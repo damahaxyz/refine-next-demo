@@ -1,5 +1,4 @@
-import { TOKEN_KEY } from "./authProvider";
-
+import { TOKEN_KEY } from "@providers/authProvider";
 
 
 function sendJson(url: string | URL | Request, methods: "POST" | "PUT" | "PATCH" | "DELETE" | "GET", json: any = {}): Promise<any> {

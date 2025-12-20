@@ -1,11 +1,11 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import z from "zod";
 import { usePageAction } from "@/components/page/page-action-provider";
-import { Role } from "@/components/pages/type";
+import { Role } from "./types";
 
 const RoleDialogPropsSchema = z.object({
-    open: z.boolean(),
-    onOpenChange: z.custom<(open: boolean) => void>(),
+  open: z.boolean(),
+  onOpenChange: z.custom<(open: boolean) => void>(),
 });
 type RoleDialogProps = z.infer<typeof RoleDialogPropsSchema>;
 

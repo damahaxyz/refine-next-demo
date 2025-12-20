@@ -7,7 +7,7 @@ import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { usePageAction } from "@/components/page/page-action-provider";
 import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import { DataTableBulkActions } from "@/components/data-table/data-table-bulk-actions";
-import { Role } from "@/components/pages/type";
+import { Role } from "./types";
 import { useRoleColumns } from "./column";
 import { ActionDialogs } from "./dialogs";
 import { RolePrimaryActions } from "./primary-actions";

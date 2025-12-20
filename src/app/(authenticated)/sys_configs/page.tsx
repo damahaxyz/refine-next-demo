@@ -1,5 +1,5 @@
 "use client";
-import { SysConfigList } from "@/components/pages/sys_configs";
+import { SysConfigList } from "@modules/sys_configs";
 
 export default function Page() {
     return <SysConfigList />;

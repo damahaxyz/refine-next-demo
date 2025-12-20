@@ -29,13 +29,13 @@ import {
   Building2
 } from 'lucide-react'
 
-import { AccountList } from '@/components/pages/accounts'
-import { RoleList } from '@/components/pages/roles'
+import { AccountList } from '@modules/accounts'
+import { RoleList } from '@modules/roles'
 import { SidebarData } from '@/components/layout/types'
-import { SysConfigList } from '@/components/pages/sys_configs'
-import { Dashboard } from '@/components/pages/dashboard'
+import { SysConfigList } from '@modules/sys_configs'
+import { Dashboard } from '@modules/dashboard'
 
-export const sidebarData: SidebarData = {
+export const menuConfig: SidebarData = {
 
   navGroups: [
     {

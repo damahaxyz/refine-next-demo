@@ -10,10 +10,10 @@ import { dataProvider } from "@/providers/dataProvider";
 import { authProvider } from "@/providers/authProvider";
 import { accessControlProvider } from "@/providers/accessControlProvider";
 
-import { resources } from "@/providers/resources";
+import { resources } from "@/config/resources";
 import { useNotificationProvider } from "@/components/notification/use-notification-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
-import { GlobalDialogProvider } from "@/components/global-dialog";
+import { GlobalDialogProvider } from "@/components/custom/global-dialog";
 import { DialogProviderBridge } from "@/lib/dialog";
 import { Toaster } from "@/components/notification/toaster";
 

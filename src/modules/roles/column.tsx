@@ -1,5 +1,4 @@
-
-import { Role } from "@/components/pages/type";
+import { Role } from "./types";
 import { useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RoleRowActions } from "./row-actions";
@@ -8,7 +7,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export const useRoleColumns = (): ColumnDef<Role>[] => {
 
-  const columns = useMemo<ColumnDef<Role>[]>(()=>[
+  const columns = useMemo<ColumnDef<Role>[]>(() => [
     {
       id: "select",
       header: ({ table }: any) => (
@@ -42,7 +41,7 @@ export const useRoleColumns = (): ColumnDef<Role>[] => {
       meta: {
         filterType: "text",
         filterOperator: "contains",
-        filterComponentProps:{
+        filterComponentProps: {
           className: "w-[120]",
           placeholder: "搜索名称..."
         }
@@ -51,7 +50,7 @@ export const useRoleColumns = (): ColumnDef<Role>[] => {
     {
       id: "actions",
       header: "操作",
-      cell: ({ row }:any) => <RoleRowActions row={row.original} />,
+      cell: ({ row }: any) => <RoleRowActions row={row.original} />,
       enableSorting: false,
     },
   ], []);

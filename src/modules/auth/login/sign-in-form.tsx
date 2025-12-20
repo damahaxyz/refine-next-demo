@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { CircleHelp, LogIn } from "lucide-react";
 
-import { InputPassword } from "@/components/input-password";
+import { InputPassword } from "@/components/custom/input-password";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";

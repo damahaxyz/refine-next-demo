@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "@refinedev/react-hook-form";
 import { Button } from '@/components/ui/button';
 import { usePageAction } from '@/components/page/page-action-provider';
-import { Role } from '@/components/pages/type';
+import { Role } from "./types";
 
 import { useList, useSelect } from '@refinedev/core';
 import { PermissionTree } from './premission-tree';

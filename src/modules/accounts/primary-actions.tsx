@@ -1,11 +1,11 @@
 import { usePageAction } from "@/components/page/page-action-provider";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { Role } from "@/components/pages/type";
+import { Account } from "./types";
 import { CanAccess } from "@refinedev/core";
 
 export function AccountPrimaryActions() {
-  const { setOpen, setCurrentRow } = usePageAction<Role>();
+  const { setOpen, setCurrentRow } = usePageAction<Account>();
   return (
     <div className='flex gap-2'>
       <CanAccess resource="accounts" action="create">

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { BaseRecord, CanAccess, HttpError, useDeleteMany } from "@refinedev/core";
 import { UseTableReturnType } from "@refinedev/react-table";
 import { Trash2 } from "lucide-react";
-import { Role } from "@/components/pages/type";
+import { Account } from "./types";
 import { GlobalDialog } from "@/lib/dialog";
 
 type AccountBulkActionsProps<TData extends BaseRecord> = {
@@ -13,7 +13,7 @@ type AccountBulkActionsProps<TData extends BaseRecord> = {
 export function AccountBulkActions<TData extends BaseRecord>({
   table
 }: AccountBulkActionsProps<TData>) {
-  const { setOpen, setCurrentRow } = usePageAction<Role>();
+  const { setOpen, setCurrentRow } = usePageAction<Account>();
   const selectedRows = table.reactTable.getFilteredSelectedRowModel().rows;
 
   const { mutate, mutation } = useDeleteMany();

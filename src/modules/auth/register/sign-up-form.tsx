@@ -1,7 +1,7 @@
 
 "use client";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { InputPassword } from "@/components/input-password";
+import { InputPassword } from "@/components/custom/input-password";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";

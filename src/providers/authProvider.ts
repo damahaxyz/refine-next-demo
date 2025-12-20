@@ -1,5 +1,5 @@
 import type { AuthProvider } from "@refinedev/core";
-import { post, get } from "./http";
+import { post, get } from "@/lib/http";
 
 const API_URL = "";
 
