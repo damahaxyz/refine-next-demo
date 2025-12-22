@@ -1,14 +1,14 @@
 import { usePageAction } from "@/components/page/page-action-provider";
-import { SysConfig } from "../type";
-import { SysConfigEditSheet } from "./edit-sheet";
+import { SystemConfig } from "./types";
+import { SystemConfigEditSheet } from "./edit-sheet";
 
 
 
 export function ActionDialogs() {
-    const { open, setOpen, currentRow, setCurrentRow } = usePageAction<SysConfig>();
+    const { open, setOpen, currentRow, setCurrentRow } = usePageAction<SystemConfig>();
     return (<>
         {
-            !currentRow && <SysConfigEditSheet // create new
+            !currentRow && <SystemConfigEditSheet // create new
                 open={open == "system-config-edit"}
                 onOpenChange={() => {
                     setOpen("system-config-edit");
@@ -20,7 +20,7 @@ export function ActionDialogs() {
         }
         {
             currentRow && (//edit
-                <SysConfigEditSheet
+                <SystemConfigEditSheet
                     open={open == "system-config-edit"}
                     onOpenChange={() => {
                         setOpen("system-config-edit");

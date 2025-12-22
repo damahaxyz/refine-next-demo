@@ -9,6 +9,7 @@ import { AccountRowActions } from "./row-actions";
 import { useList } from "@refinedev/core";
 import { Badge } from "@/components/ui/badge";
 
+
 export const useAccountColumns = (): ColumnDef<Account>[] => {
 
   const {
@@ -16,10 +17,7 @@ export const useAccountColumns = (): ColumnDef<Account>[] => {
     query: { isLoading: isLoadingRoles },
   } = useList({
     resource: "roles",
-    pagination: {
-      currentPage: 1,
-      pageSize: 999,
-    },
+    pagination: { mode: "off" },
   });
 
   const columns = useMemo<ColumnDef<Account>[]>(() => [
@@ -56,7 +54,7 @@ export const useAccountColumns = (): ColumnDef<Account>[] => {
       meta: {
         filterKey: "name",
         filterType: "text",
-        filterOperator: "eq",
+        filterOperator: "contains",
         filterComponentProps: {
           placeholder: "搜索名称...",
           className: "w-[200px]"
@@ -95,7 +93,7 @@ export const useAccountColumns = (): ColumnDef<Account>[] => {
       meta: {
         filterKey: "roleId",
         filterType: "select",
-        filterOperator: "eq",
+        filterOperator: "in",
         filterComponentProps: {
           useSelectOptions: {
             resource: "roles",
@@ -108,16 +106,7 @@ export const useAccountColumns = (): ColumnDef<Account>[] => {
         }
       }
     },
-    {
-      id: "extraPermissions",
-      accessorKey: "extraPermissions",
-      header: "附加权限",
-      enableSorting: false,
-      cell: ({ row }: any) => {
-        const extraPermissions = row.original.extraPermissions || [];
-        return extraPermissions.map((item: string) => <Badge key={item} variant="secondary">{item}</Badge>)
-      }
-    },
+
     {
       id: "actions",
       header: "操作",

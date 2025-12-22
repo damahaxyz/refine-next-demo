@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Check, ChevronDown,  X } from "lucide-react"
+import { Check, ChevronDown, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -41,7 +41,7 @@ export function SelectDropdownCommandMutiple({
   placeholder = "placeholder",
   filterAble = false,
   classNameTrigger = "w-40 px-0",
-  classNameContent = "w-40 p-0",
+  classNameContent = "w-40 p-0 align-left",
   maxDisplayNumber = 2,
   options,
   useSelectOptions,
@@ -50,13 +50,13 @@ export function SelectDropdownCommandMutiple({
 }: SelectDropdownCommandMutipleProps) {
   const selectedValues = new Set(value)
 
-   // ✅ 动态加载选项（useSelect）
-   //避免useSelect每次render都是新对象，重新请求api
+  // ✅ 动态加载选项（useSelect）
+  //避免useSelect每次render都是新对象，重新请求api
   const stableUseSelectOptions = React.useMemo(() => {
-      return useSelectOptions ? { 
-        ...useSelectOptions, 
-        defaultValue: value, 
-      } : undefined;
+    return useSelectOptions ? {
+      ...useSelectOptions,
+      defaultValue: value,
+    } : undefined;
   }, []);
 
   const { options: fetchedOptions = [] } = stableUseSelectOptions ? useSelect(stableUseSelectOptions) : { options: [] };
@@ -73,27 +73,26 @@ export function SelectDropdownCommandMutiple({
     }
     return [];
   }, [options, fetchedOptions]);
-  
-  
-    
+
+
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" className={cn(classNameTrigger)}>
+        <Button variant="outline" className={cn("h-8 w-full justify-start", classNameTrigger)} type="button">
           {selectedValues?.size == 0 && <span className=" text-muted-foreground w-full flex font-normal">{placeholder}</span>}
           {selectedValues?.size > 0 && (
             <>
-              <div className="hidden space-x-1 lg:flex w-full">
+              <div className="space-x-1 lg:flex w-full">
                 {
-                   selectOptions.filter((option) => selectedValues.has(option.value)).map((option, index) => (
-                      index < maxDisplayNumber ? <Badge
-                        variant="secondary"
-                        key={option.value}
-                        className="rounded-sm px-1 font-normal"
-                      >
-                        {option.label}
-                      </Badge> : null
-                    ))
+                  selectOptions.filter((option) => selectedValues.has(option.value)).map((option, index) => (
+                    index < maxDisplayNumber ? <Badge
+                      variant="secondary"
+                      key={option.value}
+                      className="rounded-sm px-1 font-normal"
+                    >
+                      {option.label}
+                    </Badge> : null
+                  ))
                 }
                 {
                   selectedValues.size > maxDisplayNumber && (
@@ -106,24 +105,24 @@ export function SelectDropdownCommandMutiple({
                   )
                 }
               </div>
-              <Badge
+              {/* <Badge
                 variant="secondary"
                 className="rounded-sm px-1 font-normal lg:hidden"
               >
                 {selectedValues.size}
-              </Badge>
+              </Badge> */}
             </>
           )}
           {
-            selectedValues.size === 0 ? 
-            <ChevronDown size={4} className="text-muted-foreground opacity-50"/> : 
-            <span className='bg-secondary rounded-full h-5 w-5 hover:bg-ring flex items-center justify-center' onClick={(e) =>  {
-              e.preventDefault();
-              e.stopPropagation();
-              onValueChange && onValueChange(undefined);
-            }}>
-              <X className='h-3 w-3 text-muted-foreground size-2.5' />
-            </span>
+            selectedValues.size === 0 ?
+              <ChevronDown size={4} className="text-muted-foreground opacity-50" /> :
+              <span className='bg-secondary rounded-full h-5 w-5 hover:bg-ring flex items-center justify-center' onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onValueChange && onValueChange(undefined);
+              }}>
+                <X className='h-3 w-3 text-muted-foreground size-2.5' />
+              </span>
           }
         </Button>
       </PopoverTrigger>
@@ -152,7 +151,7 @@ export function SelectDropdownCommandMutiple({
                       className={cn(
                         "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
                         isSelected
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-primary text-primary-foreground [&_svg]:stroke-gray-200 [&_svg]:dark:stroke-gray-800"
                           : "opacity-50 [&_svg]:invisible"
                       )}
                     >
@@ -176,7 +175,7 @@ export function SelectDropdownCommandMutiple({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() =>  onValueChange && onValueChange(undefined)}
+                    onSelect={() => onValueChange && onValueChange(undefined)}
                     className="justify-center text-center"
                   >
                     Clear

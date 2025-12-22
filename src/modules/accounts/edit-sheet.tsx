@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { usePageAction } from '@/components/page/page-action-provider';
 import { Account } from "./types";
 import { SelectDropdownCommandMutiple } from '@/components/custom/select-dropdown-command-mutiple';
-import { PermissionTree } from '../roles/premission-tree';
+import { PermissionTree } from '../roles/permission-tree';
 
 const AccountEditSheetPropsSchema = z.object({
     open: z.boolean(),
@@ -30,7 +30,6 @@ const accountSchema = z.object({
     username: z.string().min(4, "登录账号最少4位"),
     password: z.string().min(6, "登录密码最少6位").optional().or(z.literal("")),
     roleIds: z.array(z.string()),
-    extraPermissions: z.array(z.string())
 });
 
 type AccountFormData = z.infer<typeof accountSchema>;
@@ -50,7 +49,6 @@ export function AccountEditSheet({
         defaultValues: {
             name: currentRow?.name || "",
             username: currentRow?.username || "",
-            extraPermissions: currentRow?.extraPermissions || [],
             roleIds: currentRow?.roleIds || [],
             password: ""
         },
@@ -66,6 +64,9 @@ export function AccountEditSheet({
 
     const onSubmit = async (values: AccountFormData) => {
         console.log("values", values);
+        if (!values.password) {
+            delete values.password;
+        }
         await onFinish(values);
         onOpenChange(false);
     }
@@ -143,9 +144,9 @@ export function AccountEditSheet({
                                             value={field.value}
                                             onValueChange={field.onChange}
                                             placeholder='选择权限'
-                                            classNameTrigger='w-full'
+                                            classNameTrigger='w-full text-left '
                                             classNameContent='w-[200px] p-0'
-                                            maxDisplayNumber={3}
+                                            maxDisplayNumber={4}
                                             useSelectOptions={{
                                                 resource: "roles",
                                                 optionLabel: item => item.name,
@@ -154,19 +155,7 @@ export function AccountEditSheet({
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="extraPermissions"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>额外权限 <span className="text-xs opacity-40">总权限=角色权限+附加权限</span></FormLabel>
-                                    <FormControl>
-                                        <PermissionTree value={field.value} onChange={field.onChange} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+
 
                     </form>
                 </Form>

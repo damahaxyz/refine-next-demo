@@ -96,7 +96,7 @@ export function SelectDropdownCommand({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className={cn(classNameTrigger)} disabled={disabled}>
+        <Button variant="outline" className={cn(classNameTrigger)} disabled={disabled} type="button">
           {
             current ? (
               <span className=" w-full flex font-normal">{current.label}</span>

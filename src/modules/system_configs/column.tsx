@@ -1,12 +1,12 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { SysConfig } from "../type";
+import { SystemConfig } from "./types";
 import { useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SysConfigRowActions } from "./row-actions";
+import { SystemConfigRowActions } from "./row-actions";
 
-export const useSysConfigColumns = (): ColumnDef<SysConfig>[] => {
+export const useSystemConfigColumns = (): ColumnDef<SystemConfig>[] => {
 
-    const columns = useMemo<ColumnDef<SysConfig>[]>(() => [
+    const columns = useMemo<ColumnDef<SystemConfig>[]>(() => [
         {
             id: "select",
             header: ({ table }: any) => (
@@ -92,7 +92,7 @@ export const useSysConfigColumns = (): ColumnDef<SysConfig>[] => {
         {
             id: "actions",
             header: "操作",
-            cell: ({ row }: any) => <SysConfigRowActions row={row.original} />,
+            cell: ({ row }: any) => <SystemConfigRowActions row={row.original} />,
             enableSorting: false,
         },
     ], []);

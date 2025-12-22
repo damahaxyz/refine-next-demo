@@ -13,8 +13,8 @@ export const resources = [
         list: "/admin/roles"
     },
     {
-        name: "sys_configs",
-        list: "/admin/sys_configs",
+        name: "system_configs",
+        list: "/admin/system_configs",
     },
 
 ]

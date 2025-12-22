@@ -7,7 +7,7 @@ function sendJson(url: string | URL | Request, methods: "POST" | "PUT" | "PATCH"
             method: methods, // Specify the HTTP method as POST
             headers: {
                 'Content-Type': 'application/json', // Indicate the data format being sent
-                'Auth': typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) || "" : ""
+                'Authorization': typeof window !== "undefined" ? `Bearer ${localStorage.getItem(TOKEN_KEY) || ""}` : ""
             },
             body: methods == "GET" ? undefined : JSON.stringify(json)
         }).then(response => {
@@ -19,7 +19,7 @@ function sendJson(url: string | URL | Request, methods: "POST" | "PUT" | "PATCH"
             if (data.code == 1012 && typeof window !== "undefined") {
                 localStorage.removeItem("token");
                 localStorage.removeItem("user");
-                location.href = "/login";
+                location.href = "/admin/login";
             }
 
             resolve(data);

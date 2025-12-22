@@ -32,7 +32,7 @@ import {
 import { AccountList } from '@modules/accounts'
 import { RoleList } from '@modules/roles'
 import { SidebarData } from '@/components/layout/types'
-import { SysConfigList } from '@modules/sys_configs'
+import { SystemConfigList } from '@modules/system_configs'
 import { Dashboard } from '@modules/dashboard'
 
 export const menuConfig: SidebarData = {
@@ -59,10 +59,10 @@ export const menuConfig: SidebarData = {
           items: [
             {
               title: '系统配置',
-              url: '/admin/sys_configs',
+              url: '/admin/system_configs',
               icon: Cog,
-              permission: "SYS-CONFIG-VIEW",
-              element: SysConfigList,
+              permission: "system_config:view",
+              element: SystemConfigList,
             }
           ],
         },
@@ -75,14 +75,14 @@ export const menuConfig: SidebarData = {
               url: '/admin/accounts',
               icon: UserRoundCog,
               element: AccountList,
-              permission: "ACCOUNT-VIEW"
+              permission: "account:view"
             },
             {
               title: '角色',
               url: '/admin/roles',
               icon: KeySquare,
               element: RoleList,
-              permission: "ROLE-VIEW"
+              permission: "role:view"
             },
           ],
         },

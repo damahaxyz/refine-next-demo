@@ -65,7 +65,7 @@ export function DataTableToolbar<TData extends BaseRecord>({
                 <Input
                   key={column.id}
                   {...meta.filterComponentProps}
-                  value={getDefaultFilter(meta.filterKey || column.columnDef.id, filters)}
+                  value={getDefaultFilter(meta.filterKey || column.columnDef.id, filters, meta.filterOperator)}
                   onChange={(event) => setCustomFilter(column, event.target.value, setFilters)}
                 />
               </div>
@@ -74,7 +74,7 @@ export function DataTableToolbar<TData extends BaseRecord>({
                 <SelectDropdownCommand
                   key={column.id}
                   {...meta.filterComponentProps}
-                  value={getDefaultFilter(meta.filterKey || column.columnDef.id, filters)}
+                  value={getDefaultFilter(meta.filterKey || column.columnDef.id, filters, meta.filterOperator)}
                   onValueChange={(values) => {
                     setCustomFilter(column, values, setFilters)
                   }}
@@ -85,7 +85,7 @@ export function DataTableToolbar<TData extends BaseRecord>({
                 <SelectDropdownCommandMutiple
                   key={column.id}
                   {...meta.filterComponentProps}
-                  value={getDefaultFilter(meta.filterKey || column.columnDef.id, filters)}
+                  value={getDefaultFilter(meta.filterKey || column.columnDef.id, filters, meta.filterOperator)}
                   onValueChange={(values) => {
                     setCustomFilter(column, values && values?.length > 0 ? values : undefined, setFilters)
 

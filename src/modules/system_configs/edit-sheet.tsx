@@ -15,35 +15,35 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "@refinedev/react-hook-form";
 import { Button } from '@/components/ui/button';
 import { usePageAction } from '@/components/page/page-action-provider';
-import { SysConfig } from '../type';
+import { SystemConfig } from './types';
 
-const SysConfigEditSheetPropsSchema = z.object({
+const SystemConfigEditSheetPropsSchema = z.object({
     open: z.boolean(),
     onOpenChange: z.custom<(open: boolean) => void>(),
 });
-type SysConfigEditSheetProps = z.infer<typeof SysConfigEditSheetPropsSchema>;
+type SystemConfigEditSheetProps = z.infer<typeof SystemConfigEditSheetPropsSchema>;
 
-const SysConfigSchema = z.object({
+const SystemConfigSchema = z.object({
     name: z.string().min(1, "显示名称不能为空"),
     key: z.string().min(1, "参数名不能为空"),
     value: z.string().min(1, "参数值不能为空"),
     desc: z.string().optional().or(z.literal("")),
 });
 
-type SysConfigFormData = z.infer<typeof SysConfigSchema>;
+type SystemConfigFormData = z.infer<typeof SystemConfigSchema>;
 
-export function SysConfigEditSheet({
+export function SystemConfigEditSheet({
     open,
     onOpenChange,
-}: SysConfigEditSheetProps) {
-    const { currentRow, setOpen } = usePageAction<SysConfig>();
+}: SystemConfigEditSheetProps) {
+    const { currentRow, setOpen } = usePageAction<SystemConfig>();
     const isUpdate = !!currentRow;
 
     const {
         refineCore: { onFinish, formLoading },
         ...form
     } = useForm({
-        resolver: zodResolver(SysConfigSchema),
+        resolver: zodResolver(SystemConfigSchema),
         defaultValues: {
             name: currentRow?.name || "",
             key: currentRow?.key || "",
@@ -51,7 +51,7 @@ export function SysConfigEditSheet({
             desc: currentRow?.desc || "",
         },
         refineCoreProps: {
-            resource: "sys_configs",
+            resource: "system_configs",
             action: isUpdate ? "edit" : "create",
             id: isUpdate ? currentRow?.id : undefined,
             queryOptions: {
@@ -60,7 +60,7 @@ export function SysConfigEditSheet({
         },
     });
 
-    const onSubmit = async (values: SysConfigFormData) => {
+    const onSubmit = async (values: SystemConfigFormData) => {
         console.log("values", values);
         await onFinish(values);
         onOpenChange(false);

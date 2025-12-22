@@ -62,7 +62,7 @@ export default function Page() {
 - `/customers`
 - `/strategies` (and `/strategies/[id]/rules`)
 - `/strategy_templates`
-- `/sys_configs`
+- `/system_configs`
 - `/accounts`
 - `/roles`
 

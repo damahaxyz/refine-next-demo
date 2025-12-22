@@ -8,7 +8,7 @@ import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { ActionDialogs } from "./dialogs";
 import { usePageAction } from "@/components/page/page-action-provider";
 import { Plus, Trash2 } from "lucide-react";
-import { Account } from "../type";
+import { Account } from "./types";
 import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import { DataTableBulkActions } from "@/components/data-table/data-table-bulk-actions";
 import { AccountBulkActions } from "./bulk-actions";

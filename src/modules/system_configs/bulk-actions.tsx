@@ -3,23 +3,23 @@ import { Button } from "@/components/ui/button";
 import { BaseRecord, CanAccess, HttpError, useDeleteMany } from "@refinedev/core";
 import { UseTableReturnType } from "@refinedev/react-table";
 import { Trash2 } from "lucide-react";
-import { SysConfig } from "./types";
+import { SystemConfig } from "./types";
 import { GlobalDialog } from "@/lib/dialog";
 
-type SysConfigBulkActionsProps<TData extends BaseRecord> = {
+type SystemConfigBulkActionsProps<TData extends BaseRecord> = {
     table: UseTableReturnType<TData, HttpError>;
 }
 
-export function SysConfigBulkActions<TData extends BaseRecord>({
+export function SystemConfigBulkActions<TData extends BaseRecord>({
     table
-}: SysConfigBulkActionsProps<TData>) {
-    const { setOpen, setCurrentRow } = usePageAction<SysConfig>();
+}: SystemConfigBulkActionsProps<TData>) {
+    const { setOpen, setCurrentRow } = usePageAction<SystemConfig>();
     const selectedRows = table.reactTable.getFilteredSelectedRowModel().rows;
 
     const { mutate, mutation } = useDeleteMany();
     return (
         <div className='flex gap-2'>
-            <CanAccess resource="sys_configs" action="delete">
+            <CanAccess resource="system_configs" action="delete">
                 <Button variant="destructive" size="icon-sm" onClick={async () => {
                     let res = await GlobalDialog.confirm("全部删除", `是否确认批量删除${selectedRows.length}条记录，该操作无法恢复!`, {
                         showOk: true,
@@ -31,7 +31,7 @@ export function SysConfigBulkActions<TData extends BaseRecord>({
                         const ids = selectedRows.map(item => item.original.id || "");
                         if (ids.length > 0) {
                             mutate({
-                                resource: "sys_configs",
+                                resource: "system_configs",
                                 ids: ids
                             });
                         }

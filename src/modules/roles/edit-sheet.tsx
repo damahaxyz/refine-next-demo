@@ -18,7 +18,7 @@ import { usePageAction } from '@/components/page/page-action-provider';
 import { Role } from "./types";
 
 import { useList, useSelect } from '@refinedev/core';
-import { PermissionTree } from './premission-tree';
+import { PermissionTree } from './permission-tree';
 
 
 const RoleSheetSchema = z.object({

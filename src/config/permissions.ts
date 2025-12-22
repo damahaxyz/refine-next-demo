@@ -1,15 +1,17 @@
 export const PERMISSIONS = {
-    SYS_CONFIG: {
-        MODULE: "sys_config",
+    SYSTEM_CONFIG: {
+        MODULE: "system_config",
+        NAME: "系统配置",
         ACTIONS: {
-            VIEW: "sys_config:view",
-            CREATE: "sys_config:create",
-            EDIT: "sys_config:edit",
-            DELETE: "sys_config:delete",
+            VIEW: "system_config:view",
+            CREATE: "system_config:create",
+            EDIT: "system_config:edit",
+            DELETE: "system_config:delete",
         },
     },
     ACCOUNT: {
         MODULE: "account",
+        NAME: "账户管理",
         ACTIONS: {
             VIEW: "account:view",
             CREATE: "account:create",
@@ -19,6 +21,7 @@ export const PERMISSIONS = {
     },
     ROLE: {
         MODULE: "role",
+        NAME: "角色管理",
         ACTIONS: {
             VIEW: "role:view",
             CREATE: "role:create",
@@ -28,6 +31,7 @@ export const PERMISSIONS = {
     },
     CUSTOMER: {
         MODULE: "customer",
+        NAME: "客户管理",
         ACTIONS: {
             VIEW: "customer:view",
             CREATE: "customer:create",
@@ -37,6 +41,7 @@ export const PERMISSIONS = {
     },
     STRATEGY: {
         MODULE: "strategy",
+        NAME: "策略管理",
         ACTIONS: {
             VIEW: "strategy:view",
             CREATE: "strategy:create",

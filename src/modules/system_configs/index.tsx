@@ -2,24 +2,24 @@ import { useTable } from "@refinedev/react-table";
 import { DataTable } from "@/components/data-table/data-table";
 import { Page } from "@/components/page/page";
 import { PageHeader } from "@/components/page/page-header";
-import { useSysConfigColumns } from "./column";
+import { useSystemConfigColumns } from "./column";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { ActionDialogs } from "./dialogs";
 import { usePageAction } from "@/components/page/page-action-provider";
-import { SysConfig } from "../type";
+import { SystemConfig } from "./types";
 import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import { DataTableBulkActions } from "@/components/data-table/data-table-bulk-actions";
-import { SysConfigBulkActions } from "./bulk-actions";
-import { SysConfigPrimaryActions } from "./primary-actions";
+import { SystemConfigBulkActions } from "./bulk-actions";
+import { SystemConfigPrimaryActions } from "./primary-actions";
 
 
-export const SysConfigList = () => {
-    const columns = useSysConfigColumns();
-    const { setOpen, setCurrentRow } = usePageAction<SysConfig>();
-    const table = useTable<SysConfig>({
+export const SystemConfigList = () => {
+    const columns = useSystemConfigColumns();
+    const { setOpen, setCurrentRow } = usePageAction<SystemConfig>();
+    const table = useTable<SystemConfig>({
         columns,
         refineCoreProps: {
-            resource: "sys_configs",
+            resource: "system_configs",
             pagination: {
                 pageSize: 10,
                 currentPage: 1
@@ -30,13 +30,13 @@ export const SysConfigList = () => {
 
     return (
         <Page>
-            <PageHeader title="系统配置" description="Here's a list of your system configurations!" primaryButtons={<SysConfigPrimaryActions />}
+            <PageHeader title="系统配置" primaryButtons={<SystemConfigPrimaryActions />}
             />
             <DataTableToolbar table={table} />
-            <DataTable<SysConfig> table={table} />
+            <DataTable<SystemConfig> table={table} />
             <DataTablePagination table={table} />
             <DataTableBulkActions table={table}>
-                <SysConfigBulkActions table={table} />
+                <SystemConfigBulkActions table={table} />
             </DataTableBulkActions>
             <ActionDialogs />
         </Page>

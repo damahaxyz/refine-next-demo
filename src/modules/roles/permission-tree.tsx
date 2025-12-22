@@ -1,6 +1,6 @@
 "use client";
 import React, { useCallback, useMemo, useState } from "react";
-import { useList } from "@refinedev/core";
+import { useCustom, useList } from "@refinedev/core";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronDown } from "lucide-react";
@@ -24,12 +24,40 @@ export const PermissionTree: React.FC<PermissionTreeProps> = ({
     /** ======================
      *   1. 加载权限树
      ======================= */
-    const { result: data, query: { isLoading } } = useList<PermissionNode>({
+    // 使用 useCustom 而不是 useList，因为返回的是对象结构而非数组
+    const { result: response, query: { isLoading } } = useList({
         resource: "permissions",
         pagination: { mode: "off" },
     });
 
-    const treeData = data?.data ?? [];
+    // 转换数据结构
+    const treeData = useMemo(() => {
+        // response.data 是 API 返回的完整 JSON { code: 0, data: [...] }
+        const rawData = response?.data || [];
+
+        if (!Array.isArray(rawData)) return [];
+
+        return rawData.map((moduleDef: any) => {
+            // moduleDef = { MODULE: "sys_config", ACTIONS: { VIEW: "...", ... } }
+
+            const children = Object.keys(moduleDef.ACTIONS || {}).map((actionKey) => ({
+                code: moduleDef.ACTIONS[actionKey],
+                name: actionKey, // "VIEW", "CREATE"
+                type: "ACTION" as const,
+                children: [],
+            }));
+
+            // Generate a readable name from MODULE code (e.g. "sys_config" -> "Sys Config" or just Uppercase)
+            const moduleName = moduleDef.NAME;
+
+            return {
+                code: moduleDef.MODULE,
+                name: moduleName,
+                type: "MODULE" as const,
+                children: children,
+            };
+        });
+    }, [response]);
 
     /** ======================
      *   2. 全局展开/折叠
