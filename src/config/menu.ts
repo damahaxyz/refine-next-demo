@@ -1,32 +1,14 @@
 import {
-  Construction,
   LayoutDashboard,
-  Monitor,
-  Bug,
-  ListTodo,
-  FileX,
-  HelpCircle,
-  Lock,
-  Bell,
-  Package,
-  Palette,
-  ServerOff,
   Settings,
-  Wrench,
-  UserCog,
-  UserX,
-  Users,
-  MessagesSquare,
-  ShieldCheck,
-  AudioWaveform,
-  Command,
-  GalleryVerticalEnd,
-  KeySquare,
   UserRoundCog,
-  UserPen,
-  Cog,
+  KeySquare,
   BookUser,
-  Building2
+  Package,
+  Building2,
+  Languages,
+  Key,
+  Cog
 } from 'lucide-react'
 
 import { AccountList } from '@modules/accounts'
@@ -34,6 +16,10 @@ import { RoleList } from '@modules/roles'
 import { SidebarData } from '@/components/layout/types'
 import { SystemConfigList } from '@modules/system_configs'
 import { Dashboard } from '@modules/dashboard'
+import { ProductList } from '@modules/products'
+import { ShopList } from '@modules/shops'
+import { CollectorTokenList } from '@modules/collector_tokens'
+import { TranslationConfigList } from '@modules/translation_configs'
 
 export const menuConfig: SidebarData = {
 
@@ -49,7 +35,25 @@ export const menuConfig: SidebarData = {
         }
       ],
     },
-
+    {
+      title: 'Business',
+      items: [
+        {
+          title: '商品管理',
+          url: '/admin/products',
+          icon: Package,
+          element: ProductList,
+          permission: "product:view"
+        },
+        {
+          title: '店铺管理',
+          url: '/admin/shops',
+          icon: Building2,
+          element: ShopList,
+          permission: "shop:view"
+        },
+      ]
+    },
     {
       title: 'System',
       items: [
@@ -63,6 +67,20 @@ export const menuConfig: SidebarData = {
               icon: Cog,
               permission: "system_config:view",
               element: SystemConfigList,
+            },
+            {
+              title: '翻译配置',
+              url: '/admin/translation_configs',
+              icon: Languages,
+              permission: "translation_config:view",
+              element: TranslationConfigList,
+            },
+            {
+              title: '采集Token',
+              url: '/admin/collector_tokens',
+              icon: Key,
+              permission: "collector_token:view",
+              element: CollectorTokenList,
             }
           ],
         },
