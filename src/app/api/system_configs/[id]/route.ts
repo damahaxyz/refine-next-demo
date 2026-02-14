@@ -1,8 +1,8 @@
 import { createCrudHandlers } from "@/lib/api-handler";
-import { SystemConfig } from "@/models/systemConfig";
+import { prisma } from "@/lib/prisma-db";
 
 const handlers = createCrudHandlers({
-    model: SystemConfig,
+    model: prisma.systemConfig,
 });
 
 export const { GET, PATCH, DELETE } = handlers;

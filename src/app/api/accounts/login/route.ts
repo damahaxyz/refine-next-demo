@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import Account from "@/models/account";
+import { prisma } from "@/lib/prisma-db";
 import bcrypt from "bcryptjs";
 import { signToken } from "@/lib/auth";
 import { getUserPermissions } from "@/services/permission";
 
 export async function POST(request: Request) {
     try {
-        await dbConnect();
         const body = await request.json();
         const { username, password } = body;
 
-        const account = await Account.findOne({ username }).select('+password');
+        const account = await prisma.account.findUnique({
+            where: { username }
+        });
 
         if (!account) {
             return NextResponse.json({
@@ -29,12 +29,22 @@ export async function POST(request: Request) {
             });
         }
 
-        const permissions = await getUserPermissions(account._id);
+        const permissions = await getUserPermissions(account.id);
         const token = await signToken({
-            userId: account._id,
+            userId: account.id,
             sub: account.username,
             permissions
         });
+
+        // Parse roles JSON string back to array if needed, but the type is String in Prisma Schema
+        // However, the frontend likely expects an array.
+        // We stored it as stringified JSON in the schema migration plan.
+        let roles = [];
+        try {
+            roles = JSON.parse(account.roleIds);
+        } catch (e) {
+            roles = []; // fallback
+        }
 
         return NextResponse.json({
             code: 0,
@@ -43,9 +53,9 @@ export async function POST(request: Request) {
                 token,
                 username: account.username,
                 name: account.name || account.username,
-                roles: account.roles,
+                roles: roles,
                 avatar: account.avatar || "https://i.pravatar.cc/150?img=3",
-                permissions: await getUserPermissions(account._id),
+                permissions: permissions,
             },
         });
     } catch (error: any) {

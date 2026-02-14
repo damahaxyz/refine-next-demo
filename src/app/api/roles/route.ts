@@ -1,9 +1,9 @@
 
 import { createCrudHandlers } from "@/lib/api-handler";
-import Role from "@/models/role";
+import { prisma } from "@/lib/prisma-db";
 
 const handlers = createCrudHandlers({
-    model: Role,
+    model: prisma.role,
     auth: { module: "ROLE" },
 });
 

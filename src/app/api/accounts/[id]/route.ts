@@ -1,10 +1,10 @@
 
 import { createCrudHandlers } from "@/lib/api-handler";
-import Account from "@/models/account";
+import { prisma } from "@/lib/prisma-db";
 import { hash } from "bcryptjs";
 
 const handlers = createCrudHandlers({
-    model: Account,
+    model: prisma.account,
     auth: { module: "ACCOUNT" },
     onBeforeUpdate: async (id, data: any) => {
         if (data.password) {

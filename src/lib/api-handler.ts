@@ -1,8 +1,5 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { Model } from "mongoose";
-import dbConnect from "./db";
-
 
 interface PermissionConfig {
     module: string;
@@ -14,78 +11,82 @@ interface PermissionConfig {
     };
 }
 
-interface CrudOptions<T> {
-    model: Model<T>;
-    auth?: PermissionConfig; // 目前可选，如果需要支持公共 API
+interface CrudOptions {
+    model: any; // Prisma delegate (e.g. prisma.account)
+    auth?: PermissionConfig;
     onBeforeCreate?: (data: any) => Promise<any>;
     onBeforeUpdate?: (id: string, data: any) => Promise<any>;
+    searchFields?: string[]; // Fields allowed for search/filtering logic if needed specific handling
 }
 
-export function createCrudHandlers<T>(options: CrudOptions<T>) {
+export function createCrudHandlers(options: CrudOptions) {
 
-
-    const getCollection = async () => {
-        await dbConnect();
+    const getModel = () => {
         return options.model;
     };
 
     return {
         GET: async (req: NextRequest, { params }: { params: Promise<{ id?: string }> }) => {
             try {
-
                 const resolvedParams = await params;
-                const Model = await getCollection();
+                const Model = getModel();
 
-                // 获取单个详情
+                // Get One
                 if (resolvedParams?.id) {
-                    const item = await Model.findById(resolvedParams.id);
+                    const item = await Model.findUnique({
+                        where: { id: resolvedParams.id }
+                    });
                     if (!item) return NextResponse.json({ code: 404, message: "Not Found" }, { status: 404 });
                     return NextResponse.json({ code: 0, message: "success", data: item });
                 }
 
-                // 列表 / 搜索
+                // Get List / Search
                 const searchParams = req.nextUrl.searchParams;
                 const page = parseInt(searchParams.get("_page") || "1");
                 const limit = parseInt(searchParams.get("_limit") || "10");
                 const skip = (page - 1) * limit;
 
-                // 排序处理
+                // Sorting
                 const sortField = searchParams.get("_sort") || "createdAt";
-                const sortOrder = searchParams.get("_order") === "asc" ? 1 : -1;
-                const sortOption: any = { [sortField]: sortOrder };
+                const sortOrder = searchParams.get("_order") === "asc" ? "asc" : "desc";
+                const orderBy = { [sortField]: sortOrder };
 
-                // 统一过滤支持 (Refine Operator Mapping)
-                const query: any = {};
+                // Filtering - Map query params to Prisma where clause
+                const where: any = {};
                 searchParams.forEach((value, key) => {
                     if (["_page", "_limit", "_sort", "_order"].includes(key)) return;
 
                     if (key.endsWith("_like")) {
                         const field = key.replace("_like", "");
-                        query[field] = { $regex: value, $options: "i" };
+                        where[field] = { contains: value }; // SQLite is case-insensitive by default for LIKE, usually
                     } else if (key.endsWith("_gte")) {
                         const field = key.replace("_gte", "");
-                        query[field] = { ...query[field], $gte: value };
+                        where[field] = { ...where[field], gte: value }; // Prisma handles string/date comparison
                     } else if (key.endsWith("_lte")) {
                         const field = key.replace("_lte", "");
-                        query[field] = { ...query[field], $lte: value };
+                        where[field] = { ...where[field], lte: value };
                     } else if (key.endsWith("_ne")) {
                         const field = key.replace("_ne", "");
-                        query[field] = { $ne: value };
+                        where[field] = { not: value };
                     } else if (key.endsWith("_in")) {
                         const field = key.replace("_in", "");
-                        query[field] = { $in: value.split(",") };
+                        where[field] = { in: value.split(",") };
                     } else {
-                        // 精确匹配
-                        query[key] = value;
+                        // Exact match
+                        where[key] = value;
                     }
                 });
 
                 const [data, total] = await Promise.all([
-                    Model.find(query).skip(skip).limit(limit).sort(sortOption),
-                    Model.countDocuments(query),
+                    Model.findMany({
+                        where,
+                        skip,
+                        take: limit,
+                        orderBy,
+                    }),
+                    Model.count({ where }),
                 ]);
 
-                // 统一返回格式
                 return NextResponse.json({
                     code: 0,
                     message: "success",
@@ -94,46 +95,54 @@ export function createCrudHandlers<T>(options: CrudOptions<T>) {
                 });
 
             } catch (e: any) {
+                console.error(e);
                 return NextResponse.json({ code: 500, message: e.message }, { status: 500 });
             }
         },
 
         POST: async (req: NextRequest) => {
             try {
-
                 const body = await req.json();
-                const Model = await getCollection();
+                const Model = getModel();
 
                 let data = body;
                 if (options.onBeforeCreate) {
                     data = await options.onBeforeCreate(data);
                 }
 
-                const newItem = await Model.create(data);
+                const newItem = await Model.create({ data });
                 return NextResponse.json({ code: 0, message: "success", data: newItem }, { status: 201 });
             } catch (e: any) {
+                console.error(e);
                 return NextResponse.json({ code: 500, message: e.message }, { status: 500 });
             }
         },
 
         PATCH: async (req: NextRequest, { params }: { params?: Promise<{ id?: string }> } = {}) => {
             try {
-
                 const resolvedParams = await params;
                 const id = resolvedParams?.id;
                 const body = await req.json();
-                const Model = await getCollection();
+                const Model = getModel();
 
                 if (id) {
-                    // 单个更新
+                    // Update One
                     let data = body;
+                    // Remove id from update data if present to avoid Prisma error
+                    delete data.id;
+
                     if (options.onBeforeUpdate) {
                         data = await options.onBeforeUpdate(id, data);
                     }
-                    const updated = await Model.findByIdAndUpdate(id, data, { new: true });
+                    const updated = await Model.update({
+                        where: { id },
+                        data
+                    });
                     return NextResponse.json({ code: 0, message: "success", data: updated });
                 } else {
-                    // 批量更新
+                    // Batch Update
+                    // Prisma doesn't have a direct batch update with different values for different IDs easily 
+                    // without raw queries or loop. Loop is fine for now as per previous implementation.
                     const { ids, data: updateData } = body;
 
                     if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -141,35 +150,45 @@ export function createCrudHandlers<T>(options: CrudOptions<T>) {
                     }
 
                     const results = [];
-                    for (const itemId of ids) {
+                    // We run these in a transaction if possible, or parallel
+                    // Using parallel promises for speed, but ideally strictly transactional
+
+                    // Note: Prisma strict transaction for list of updates: 
+                    // const updates = ids.map(id => Model.update(...)); await prisma.$transaction(updates);
+
+                    const transaction = ids.map(async (itemId: string) => {
                         let itemData = { ...updateData };
                         if (options.onBeforeUpdate) {
                             itemData = await options.onBeforeUpdate(itemId, itemData);
                         }
-                        const updated = await Model.findByIdAndUpdate(itemId, itemData, { new: true });
-                        results.push(updated);
-                    }
+                        return Model.update({
+                            where: { id: itemId },
+                            data: itemData
+                        });
+                    });
 
-                    return NextResponse.json({ code: 0, message: "success", data: results });
+                    const updatedItems = await Promise.all(transaction); // Or prisma.$transaction(transaction) if we built promises array properly
+
+                    return NextResponse.json({ code: 0, message: "success", data: updatedItems });
                 }
             } catch (e: any) {
+                console.error(e);
                 return NextResponse.json({ code: 500, message: e.message }, { status: 500 });
             }
         },
 
         DELETE: async (req: NextRequest, { params }: { params?: Promise<{ id?: string }> } = {}) => {
             try {
-
                 const resolvedParams = await params;
                 const id = resolvedParams?.id;
-                const Model = await getCollection();
+                const Model = getModel();
 
                 if (id) {
-                    // 单个删除
-                    await Model.findByIdAndDelete(id);
+                    // Delete One
+                    await Model.delete({ where: { id } });
                     return NextResponse.json({ code: 0, message: "success", success: true });
                 } else {
-                    // 批量删除
+                    // Batch Delete
                     let ids: string[] = [];
                     try {
                         const body = await req.json();
@@ -185,6 +204,7 @@ export function createCrudHandlers<T>(options: CrudOptions<T>) {
                     }
 
                     if (ids.length === 0) {
+                        // Fallback query param check again if body failed or was empty
                         const searchParams = req.nextUrl.searchParams;
                         const idsParam = searchParams.get("ids");
                         if (idsParam) {
@@ -196,10 +216,15 @@ export function createCrudHandlers<T>(options: CrudOptions<T>) {
                         return NextResponse.json({ code: 400, message: "Missing ids for batch delete" }, { status: 400 });
                     }
 
-                    await Model.deleteMany({ _id: { $in: ids } });
+                    await Model.deleteMany({
+                        where: {
+                            id: { in: ids }
+                        }
+                    });
                     return NextResponse.json({ code: 0, message: "success", success: true });
                 }
             } catch (e: any) {
+                console.error(e);
                 return NextResponse.json({ code: 500, message: e.message }, { status: 500 });
             }
         }

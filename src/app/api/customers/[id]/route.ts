@@ -1,9 +1,9 @@
 
 import { createCrudHandlers } from "@/lib/api-handler";
-import Customer from "@/models/customer";
+import { prisma } from "@/lib/prisma-db";
 
 const handlers = createCrudHandlers({
-    model: Customer,
+    model: prisma.customer,
     auth: {
         module: "CUSTOMER", // Requires CUSTOMER-VIEW, CUSTOMER-EDIT, CUSTOMER-DELETE
     },

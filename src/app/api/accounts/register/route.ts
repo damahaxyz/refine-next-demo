@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import Account from "@/models/account";
+import { prisma } from "@/lib/prisma-db";
 import bcrypt from "bcryptjs";
 import { signToken } from "@/lib/auth";
 import { getUserPermissions } from "@/services/permission";
 
 export async function POST(request: Request) {
     try {
-        await dbConnect();
         const body = await request.json();
         const { username, email, password } = body;
 
@@ -18,7 +16,15 @@ export async function POST(request: Request) {
             });
         }
 
-        const existingAccount = await Account.findOne({ $or: [{ username }, { email }] });
+        const existingAccount = await prisma.account.findFirst({
+            where: {
+                OR: [
+                    { username },
+                    { email: email || "" } // Prisma doesn't like undefined in OR sometimes depending on version, safely handling
+                ]
+            }
+        });
+
         if (existingAccount) {
             return NextResponse.json({
                 code: 1,
@@ -28,17 +34,19 @@ export async function POST(request: Request) {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const newAccount = await Account.create({
-            username,
-            email,
-            password: hashedPassword,
-            name: username, // 默认为用户名
-            roles: ["user"], // 默认角色
+        const newAccount = await prisma.account.create({
+            data: {
+                username,
+                email,
+                password: hashedPassword,
+                name: username,
+                roleIds: JSON.stringify(["user"]), // Default role
+            }
         });
 
-        const permissions = await getUserPermissions(newAccount._id);
+        const permissions = await getUserPermissions(newAccount.id);
         const token = await signToken({
-            userId: newAccount._id,
+            userId: newAccount.id,
             sub: newAccount.username,
             permissions
         });
@@ -48,7 +56,7 @@ export async function POST(request: Request) {
             message: "Registration successful",
             data: {
                 username: newAccount.username,
-                id: newAccount._id,
+                id: newAccount.id,
                 token,
                 permissions,
             }

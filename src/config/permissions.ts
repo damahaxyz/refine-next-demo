@@ -39,16 +39,7 @@ export const PERMISSIONS = {
             DELETE: "customer:delete",
         }
     },
-    STRATEGY: {
-        MODULE: "strategy",
-        NAME: "策略管理",
-        ACTIONS: {
-            VIEW: "strategy:view",
-            CREATE: "strategy:create",
-            EDIT: "strategy:edit",
-            DELETE: "strategy:delete",
-        }
-    }
+
 } as const;
 
 export type PermissionModule = keyof typeof PERMISSIONS;
