@@ -11,16 +11,22 @@ datasource db {
 }
 
 model Account {
-  id               String   @id @default(cuid())
-  username         String   @unique
-  email            String?
-  password         String
-  name             String?
-  avatar           String?
-  roleIds          Json     @default("[]") // Using Json type, Prisma handles serialization
-  extraPermissions Json     @default("[]") // Using Json type, Prisma handles serialization
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                String             @id @default(cuid())
+  username          String             @unique
+  email             String?
+  password          String
+  name              String?
+  avatar            String?
+  roleIds           Json               @default("[]") // Using Json type
+  extraPermissions  Json               @default("[]") // Using Json type
+  apiToken          String?            @unique
+  status            String             @default("active") // active, inactive
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  products          Product[]
+  shops             Shop[]
+  collectorTokens   CollectorToken[]
+  translationConfig TranslationConfig?
 }
 
 model Role {
@@ -31,14 +37,7 @@ model Role {
   updatedAt   DateTime @updatedAt
 }
 
-model Customer {
-  id        String   @id @default(cuid())
-  name      String
-  password  String?
-  remark    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+// Customer model removed in favor of Account
 
 model SystemConfig {
   id        String   @id @default(cuid())
@@ -48,4 +47,78 @@ model SystemConfig {
   desc      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id                    String    @id @default(cuid())
+  accountId             String
+  account               Account   @relation(fields: [accountId], references: [id])
+  sourceUrl             String
+  sourcePlatform        String
+  sourceId              String?
+  title                 String
+  titleTranslated       String?
+  description           String
+  descriptionTranslated String?
+  price                 Float
+  priceCurrency         String    @default("CNY")
+  sellingPrice          Float?
+  sellingCurrency       String?   @default("USD")
+  hasVariants           Boolean   @default(false)
+  variants              Json? // [{ id, price, sellingPrice, stock, attributes, ... }]
+  specs                 Json?
+  images                Json
+  imagesProcessed       Json?
+  categories            Json?
+  status                String    @default("draft") // draft, translated, ready, published, archived
+  shopId                String?
+  shop                  Shop?     @relation(fields: [shopId], references: [id])
+  externalId            String?
+  targetLanguage        String?   @default("en")
+  translatedAt          DateTime?
+  publishedAt           DateTime?
+  collectedAt           DateTime  @default(now())
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Shop {
+  id              String    @id @default(cuid())
+  accountId       String
+  account         Account   @relation(fields: [accountId], references: [id])
+  type            String    @default("WooCommerce")
+  name            String
+  url             String
+  apiKey          String
+  apiSecret       String
+  version         String?
+  defaultLanguage String    @default("en")
+  defaultCurrency String    @default("USD")
+  isActive        Boolean   @default(true)
+  products        Product[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model CollectorToken {
+  id           String    @id @default(cuid())
+  accountId    String
+  account      Account   @relation(fields: [accountId], references: [id])
+  token        String    @unique
+  name         String
+  lastActiveAt DateTime?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+}
+
+model TranslationConfig {
+  id                String   @id @default(cuid())
+  accountId         String   @unique
+  account           Account  @relation(fields: [accountId], references: [id])
+  provider          String   @default("aidge")
+  appId             String?
+  apiKey            String
+  defaultTargetLang String   @default("en")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
