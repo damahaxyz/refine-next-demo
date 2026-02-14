@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Button } from './ui/button'
+import { Button } from '@/components/ui/button'
 
 type SelectDropdownProps = {
   onValueChange?: (value: string) => void
@@ -35,20 +35,20 @@ export function SelectDropdown({
 }: SelectDropdownProps) {
 
   const defaultState = { value: value === undefined ? "" : value, onValueChange };
-  const selectTrigger =  (
+  const selectTrigger = (
     <div className="relative">
       <SelectTrigger disabled={disabled} className={cn(className, "relative")}>
-          <SelectValue placeholder={placeholder ?? 'Select'} />
+        <SelectValue placeholder={placeholder ?? 'Select'} />
       </SelectTrigger>
-       {
-         clearable && value && <div className='right-0 top-0 z-10 w-9 absolute h-full flex justify-center items-center'>
-            <Button variant="ghost" size="icon-sm" className='bg-secondary rounded-full h-4 w-4 hover:bg-ring' onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onValueChange && onValueChange("");
-              }}><X className='h-3 w-3 text-muted-foreground size-2.5' /></Button>
-          </div>
-        }
+      {
+        clearable && value && <div className='right-0 top-0 z-10 w-9 absolute h-full flex justify-center items-center'>
+          <Button variant="ghost" size="icon-sm" className='bg-secondary rounded-full h-4 w-4 hover:bg-ring' onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onValueChange && onValueChange("");
+          }}><X className='h-3 w-3 text-muted-foreground size-2.5' /></Button>
+        </div>
+      }
     </div>
   );
 
@@ -57,7 +57,7 @@ export function SelectDropdown({
       {
         isControlled ? <FormControl>{selectTrigger}</FormControl> : selectTrigger
       }
-      
+
       <SelectContent>
         {isPending ? (
           <SelectItem disabled value='loading' className='h-14'>

@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+
 interface PermissionConfig {
     module: string;
     actions?: {
@@ -102,10 +103,10 @@ export function createCrudHandlers(options: CrudOptions) {
 
         POST: async (req: NextRequest) => {
             try {
-                const body = await req.json();
+                let data = await req.json();
                 const Model = getModel();
 
-                let data = body;
+
                 if (options.onBeforeCreate) {
                     data = await options.onBeforeCreate(data);
                 }
@@ -130,6 +131,7 @@ export function createCrudHandlers(options: CrudOptions) {
                     let data = body;
                     // Remove id from update data if present to avoid Prisma error
                     delete data.id;
+
 
                     if (options.onBeforeUpdate) {
                         data = await options.onBeforeUpdate(id, data);
@@ -158,6 +160,7 @@ export function createCrudHandlers(options: CrudOptions) {
 
                     const transaction = ids.map(async (itemId: string) => {
                         let itemData = { ...updateData };
+
                         if (options.onBeforeUpdate) {
                             itemData = await options.onBeforeUpdate(itemId, itemData);
                         }

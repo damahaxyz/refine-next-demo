@@ -40,7 +40,7 @@ export async function POST(request: Request) {
                 email,
                 password: hashedPassword,
                 name: username,
-                roleIds: JSON.stringify(["user"]), // Default role
+                roleIds: ["user"], // Default role
             }
         });
 

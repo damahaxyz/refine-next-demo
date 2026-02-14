@@ -1,5 +1,5 @@
 import { usePageAction } from "@/components/page/page-action-provider";
-import { Role } from "../type";
+import { Role } from "./types";
 import { RoleEditSheet } from "./edit-sheet";
 import { RoleDialog } from "./dialog";
 
@@ -35,8 +35,8 @@ export function ActionDialogs() {
             onOpenChange={() => {
               setOpen("role-show");
               setTimeout(() => {
-                  setCurrentRow(null)
-                }, 500)
+                setCurrentRow(null)
+              }, 500)
             }}
           />
         </>

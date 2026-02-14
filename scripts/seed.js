@@ -24,12 +24,19 @@ async function main() {
             adminRole = await prisma.role.create({
                 data: {
                     name: adminRoleName,
-                    permissions: JSON.stringify(['*']) // All permissions
+                    permissions: ['*'] // All permissions
                 }
             });
             console.log(`Role '${adminRoleName}' created.`);
         } else {
-            console.log(`Role '${adminRoleName}' already exists.`);
+            console.log(`Role '${adminRoleName}' already exists. Updating permissions...`);
+            adminRole = await prisma.role.update({
+                where: { id: adminRole.id },
+                data: {
+                    permissions: ['*']
+                }
+            });
+            console.log(`Role '${adminRoleName}' permissions updated.`);
         }
 
         // 2. Create Root User
@@ -40,17 +47,17 @@ async function main() {
         const existingUser = await prisma.account.findUnique({ where: { username } });
 
         if (existingUser) {
-            console.log(`User '${username}' already exists. Updating password and permissions...`);
+            console.log("User 'root' already exists. Updating password and permissions...");
+            const hashedPassword = await bcrypt.hash('123456', 10);
             await prisma.account.update({
-                where: { username },
+                where: { id: existingUser.id },
                 data: {
                     password: hashedPassword,
-                    name: 'Root Administrator',
-                    roleIds: JSON.stringify([adminRole.id]),
-                    extraPermissions: JSON.stringify(['*'])
+                    roleIds: [adminRole.id], // Ensure native array
+                    extraPermissions: ['*']  // Ensure native array
                 }
             });
-            console.log(`User '${username}' updated.`);
+            console.log("User 'root' updated.");
         } else {
             console.log(`Creating user '${username}'...`);
             await prisma.account.create({
@@ -58,8 +65,8 @@ async function main() {
                     username,
                     password: hashedPassword,
                     name: 'Root Administrator',
-                    roleIds: JSON.stringify([adminRole.id]),
-                    extraPermissions: JSON.stringify(['*'])
+                    roleIds: [adminRole.id],
+                    extraPermissions: ['*']
                 }
             });
             console.log(`User '${username}' created.`);

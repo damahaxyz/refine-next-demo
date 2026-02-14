@@ -1,5 +1,5 @@
 import { usePageAction } from "@/components/page/page-action-provider";
-import { Account } from "../type";
+import { Account } from "./types";
 import { AccountEditSheet } from "./edit-sheet";
 
 

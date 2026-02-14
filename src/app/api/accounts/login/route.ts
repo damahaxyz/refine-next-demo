@@ -6,7 +6,7 @@ import { getUserPermissions } from "@/services/permission";
 
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
+        const body: { username: string; password: string } = await request.json();
         const { username, password } = body;
 
         const account = await prisma.account.findUnique({
@@ -39,9 +39,9 @@ export async function POST(request: Request) {
         // Parse roles JSON string back to array if needed, but the type is String in Prisma Schema
         // However, the frontend likely expects an array.
         // We stored it as stringified JSON in the schema migration plan.
-        let roles = [];
+        let roles: string[] = [];
         try {
-            roles = JSON.parse(account.roleIds);
+            roles = account.roleIds as string[];
         } catch (e) {
             roles = []; // fallback
         }

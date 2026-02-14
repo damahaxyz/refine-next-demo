@@ -18,12 +18,7 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
     if (account.username === "root") return await getAllPermissions();
 
     // Parse roleIds safely
-    let roleIds: string[] = [];
-    try {
-        roleIds = JSON.parse(account.roleIds);
-    } catch (e) {
-        roleIds = [];
-    }
+    const roleIds = (account.roleIds as string[]) || [];
 
     // Fetch roles
     // Prisma doesn't support $or with mixed ID/Name in a single simple way for unrelated fields easily without careful OR construction
@@ -42,12 +37,7 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
 
     // Add role permissions
     roles.forEach(role => {
-        let rolePerms: string[] = [];
-        try {
-            rolePerms = JSON.parse(role.permissions);
-        } catch (e) {
-            rolePerms = [];
-        }
+        const rolePerms = (role.permissions as string[]) || [];
 
         if (rolePerms && Array.isArray(rolePerms)) {
             rolePerms.forEach((p: string) => permissions.add(p));
@@ -55,12 +45,7 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
     });
 
     // Add extra permissions
-    let extraPerms: string[] = [];
-    try {
-        extraPerms = JSON.parse(account.extraPermissions);
-    } catch (e) {
-        extraPerms = [];
-    }
+    const extraPerms = (account.extraPermissions as string[]) || [];
 
     if (extraPerms && Array.isArray(extraPerms)) {
         extraPerms.forEach((p: string) => permissions.add(p));

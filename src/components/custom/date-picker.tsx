@@ -7,7 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { FormControl } from './ui/form'
+import { FormControl } from '@/components/ui/form'
 
 type DatePickerProps = {
   selected: Date | undefined
@@ -26,19 +26,19 @@ export function DatePicker({
 }: DatePickerProps) {
 
   const popoverTrigger = (<PopoverTrigger asChild>
-          <Button
-            variant='outline'
-            data-empty={!selected}
-            className='data-[empty=true]:text-muted-foreground w-[240px] justify-start text-start font-normal'
-          >
-            {selected ? (
-              format(selected, 'yyyy-MM-dd')
-            ) : (
-              <span>{placeholder}</span>
-            )}
-            <CalendarIcon className='ms-auto h-4 w-4 opacity-50' />
-          </Button>
-        </PopoverTrigger>);
+    <Button
+      variant='outline'
+      data-empty={!selected}
+      className='data-[empty=true]:text-muted-foreground w-[240px] justify-start text-start font-normal'
+    >
+      {selected ? (
+        format(selected, 'yyyy-MM-dd')
+      ) : (
+        <span>{placeholder}</span>
+      )}
+      <CalendarIcon className='ms-auto h-4 w-4 opacity-50' />
+    </Button>
+  </PopoverTrigger>);
   return (
     <Popover>
       {isControlled ? <FormControl>{popoverTrigger}</FormControl> : popoverTrigger}
