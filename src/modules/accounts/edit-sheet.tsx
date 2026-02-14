@@ -25,11 +25,15 @@ const AccountEditSheetPropsSchema = z.object({
 });
 type AccountEditSheetProps = z.infer<typeof AccountEditSheetPropsSchema>;
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 const accountSchema = z.object({
     name: z.string().min(1, "显示名称最少6位"),
     username: z.string().min(4, "登录账号最少4位"),
+    email: z.string().email("请输入有效的邮箱地址").optional().or(z.literal("")),
     password: z.string().min(6, "登录密码最少6位").optional().or(z.literal("")),
     roleIds: z.array(z.string()),
+    status: z.string(),
 });
 
 type AccountFormData = z.infer<typeof accountSchema>;
@@ -44,12 +48,14 @@ export function AccountEditSheet({
     const {
         refineCore: { onFinish, formLoading },
         ...form
-    } = useForm({
+    } = useForm<Account, any, AccountFormData>({
         resolver: zodResolver(accountSchema),
         defaultValues: {
             name: currentRow?.name || "",
             username: currentRow?.username || "",
+            email: currentRow?.email || "",
             roleIds: currentRow?.roleIds || [],
+            status: currentRow?.status || "active",
             password: ""
         },
         refineCoreProps: {
@@ -109,6 +115,19 @@ export function AccountEditSheet({
                         />
                         <FormField
                             control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>邮箱</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} placeholder="邮箱地址" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
                             name="password"
                             render={({ field }) => (
                                 <FormItem>
@@ -120,18 +139,27 @@ export function AccountEditSheet({
                                 </FormItem>
                             )}
                         />
-                        {/* <FormField
+                        <FormField
                             control={form.control}
-                            name="root"
+                            name="status"
                             render={({ field }) => (
-                                <FormItem className='flex'>
-                                    <FormControl>
-                                        <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked)}/>
-                                    </FormControl>
-                                    <FormLabel>root 用户</FormLabel>
+                                <FormItem>
+                                    <FormLabel>状态</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger className='w-full'>
+                                                <SelectValue placeholder="选择状态" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="active">Active</SelectItem>
+                                            <SelectItem value="inactive">Inactive</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
                                 </FormItem>
                             )}
-                        /> */}
+                        />
                         <FormField
                             control={form.control}
                             name="roleIds"

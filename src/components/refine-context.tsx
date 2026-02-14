@@ -52,7 +52,7 @@ export const RefineContext = ({ children }: { children: React.ReactNode }) => {
 
                             {children}
                             <RefineKbar />
-                            <Toaster />
+                            <Toaster position="top-center" />
                         </Refine>
                         <DialogProviderBridge />
                     </RefineKbarProvider>

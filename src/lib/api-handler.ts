@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 
-interface PermissionConfig {
+export interface PermissionConfig {
     module: string;
     actions?: {
         GET?: string;
@@ -12,12 +12,32 @@ interface PermissionConfig {
     };
 }
 
+export interface QueryOptions {
+    where?: any;
+    orderBy?: any;
+    skip?: number;
+    take?: number;
+    include?: any;
+    select?: any;
+}
+
+
 interface CrudOptions {
     model: any; // Prisma delegate (e.g. prisma.account)
     auth?: PermissionConfig;
-    onBeforeCreate?: (data: any) => Promise<any>;
-    onBeforeUpdate?: (id: string, data: any) => Promise<any>;
-    searchFields?: string[]; // Fields allowed for search/filtering logic if needed specific handling
+    onBeforeCreate?: (data: any) => Promise<any>; // Changed back to return data as good practice, or void if user insists on mutation
+    onAfterCreate?: (data: any) => Promise<any>;
+    onBeforeUpdate?: (query: any, updates: any) => Promise<any>;
+    onAfterUpdate?: (data: any) => Promise<any>;
+    searchFields?: string[];
+    onBeforeQuery?: (query: QueryOptions, req: NextRequest) => Promise<QueryOptions>;
+    onAfterQuery?: (data: any, total: number) => Promise<{ data: any, total: number }>;
+
+    onBeforeDelete?: (query: any) => Promise<any>;
+    onAfterDelete?: (data: any) => Promise<any>;
+
+    onBeforeDeleteMany?: (query: any) => Promise<any>;
+    onAfterDeleteMany?: (data: any) => Promise<any>;
 }
 
 export function createCrudHandlers(options: CrudOptions) {
@@ -34,9 +54,17 @@ export function createCrudHandlers(options: CrudOptions) {
 
                 // Get One
                 if (resolvedParams?.id) {
-                    const item = await Model.findUnique({
+                    let query: QueryOptions = {
                         where: { id: resolvedParams.id }
-                    });
+                    };
+                    if (options.onBeforeQuery) {
+                        query = await options.onBeforeQuery(query, req);
+                    }
+                    let item = await Model.findUnique(query);
+                    if (options.onAfterQuery) {
+                        let result = await options.onAfterQuery(item, 1);
+                        item = result.data;
+                    }
                     if (!item) return NextResponse.json({ code: 404, message: "Not Found" }, { status: 404 });
                     return NextResponse.json({ code: 0, message: "success", data: item });
                 }
@@ -59,10 +87,10 @@ export function createCrudHandlers(options: CrudOptions) {
 
                     if (key.endsWith("_like")) {
                         const field = key.replace("_like", "");
-                        where[field] = { contains: value }; // SQLite is case-insensitive by default for LIKE, usually
+                        where[field] = { contains: value };
                     } else if (key.endsWith("_gte")) {
                         const field = key.replace("_gte", "");
-                        where[field] = { ...where[field], gte: value }; // Prisma handles string/date comparison
+                        where[field] = { ...where[field], gte: value };
                     } else if (key.endsWith("_lte")) {
                         const field = key.replace("_lte", "");
                         where[field] = { ...where[field], lte: value };
@@ -78,21 +106,31 @@ export function createCrudHandlers(options: CrudOptions) {
                     }
                 });
 
+                let query: QueryOptions = {
+                    where,
+                    orderBy,
+                    skip,
+                    take: limit
+                };
+
+                if (options.onBeforeQuery) {
+                    query = await options.onBeforeQuery(query, req);
+                }
+
                 const [data, total] = await Promise.all([
-                    Model.findMany({
-                        where,
-                        skip,
-                        take: limit,
-                        orderBy,
-                    }),
-                    Model.count({ where }),
+                    Model.findMany(query),
+                    Model.count({ where: query.where }),
                 ]);
+                let result = { data, total };
+                if (options.onAfterQuery) {
+                    result = await options.onAfterQuery(data, total);
+                }
 
                 return NextResponse.json({
                     code: 0,
                     message: "success",
-                    data: data,
-                    total: total
+                    data: result.data,
+                    total: result.total
                 });
 
             } catch (e: any) {
@@ -106,12 +144,14 @@ export function createCrudHandlers(options: CrudOptions) {
                 let data = await req.json();
                 const Model = getModel();
 
-
                 if (options.onBeforeCreate) {
-                    data = await options.onBeforeCreate(data);
+                    data = await options.onBeforeCreate(data) || data;
                 }
 
-                const newItem = await Model.create({ data });
+                let newItem = await Model.create({ data });
+                if (options.onAfterCreate) {
+                    newItem = await options.onAfterCreate(newItem) || newItem;
+                }
                 return NextResponse.json({ code: 0, message: "success", data: newItem }, { status: 201 });
             } catch (e: any) {
                 console.error(e);
@@ -132,14 +172,17 @@ export function createCrudHandlers(options: CrudOptions) {
                     // Remove id from update data if present to avoid Prisma error
                     delete data.id;
 
-
+                    let where = { id };
+                    // let updateOptions: UpdateOptions = { where, data }
                     if (options.onBeforeUpdate) {
-                        data = await options.onBeforeUpdate(id, data);
+                        let updateOptions = await options.onBeforeUpdate(where, data) || { where, data };
+                        where = updateOptions.where;
+                        data = updateOptions.data;
                     }
-                    const updated = await Model.update({
-                        where: { id },
-                        data
-                    });
+                    let updated = await Model.update(where, data);
+                    if (options.onAfterUpdate) {
+                        updated = await options.onAfterUpdate(updated) || updated;
+                    }
                     return NextResponse.json({ code: 0, message: "success", data: updated });
                 } else {
                     // Batch Update
@@ -151,7 +194,6 @@ export function createCrudHandlers(options: CrudOptions) {
                         return NextResponse.json({ code: 400, message: "Missing ids for batch update" }, { status: 400 });
                     }
 
-                    const results = [];
                     // We run these in a transaction if possible, or parallel
                     // Using parallel promises for speed, but ideally strictly transactional
 
@@ -160,14 +202,20 @@ export function createCrudHandlers(options: CrudOptions) {
 
                     const transaction = ids.map(async (itemId: string) => {
                         let itemData = { ...updateData };
+                        let where = { id: itemId };
 
                         if (options.onBeforeUpdate) {
-                            itemData = await options.onBeforeUpdate(itemId, itemData);
+                            let updateOptions = await options.onBeforeUpdate(where, itemData);
+                            where = updateOptions.where;
+                            itemData = updateOptions.data;
                         }
-                        return Model.update({
-                            where: { id: itemId },
-                            data: itemData
-                        });
+
+                        let updated = await Model.update({ where, data: itemData });
+
+                        if (options.onAfterUpdate) {
+                            updated = await options.onAfterUpdate(updated) || updated;
+                        }
+                        return updated;
                     });
 
                     const updatedItems = await Promise.all(transaction); // Or prisma.$transaction(transaction) if we built promises array properly
@@ -188,7 +236,14 @@ export function createCrudHandlers(options: CrudOptions) {
 
                 if (id) {
                     // Delete One
-                    await Model.delete({ where: { id } });
+                    let where = { id };
+                    if (options.onBeforeDelete) {
+                        where = await options.onBeforeDelete({ where });
+                    }
+                    await Model.delete({ where });
+                    if (options.onAfterDelete) {
+                        await options.onAfterDelete({ where });
+                    }
                     return NextResponse.json({ code: 0, message: "success", success: true });
                 } else {
                     // Batch Delete
@@ -219,11 +274,16 @@ export function createCrudHandlers(options: CrudOptions) {
                         return NextResponse.json({ code: 400, message: "Missing ids for batch delete" }, { status: 400 });
                     }
 
+                    let where = { id: { in: ids } };
+                    if (options.onBeforeDeleteMany) {
+                        where = await options.onBeforeDeleteMany({ where });
+                    }
                     await Model.deleteMany({
-                        where: {
-                            id: { in: ids }
-                        }
+                        where
                     });
+                    if (options.onAfterDeleteMany) {
+                        await options.onAfterDeleteMany({ where });
+                    }
                     return NextResponse.json({ code: 0, message: "success", success: true });
                 }
             } catch (e: any) {

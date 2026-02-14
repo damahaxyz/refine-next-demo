@@ -46,8 +46,9 @@ export async function POST(request: Request) {
 
         const permissions = await getUserPermissions(newAccount.id);
         const token = await signToken({
-            userId: newAccount.id,
-            sub: newAccount.username,
+            accountId: newAccount.id,
+            username: newAccount.username,
+            roleIds: (newAccount.roleIds as string[]) || [],
             permissions
         });
 

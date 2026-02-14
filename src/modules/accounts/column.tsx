@@ -1,16 +1,18 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Account } from "./types";
-import { Button } from "@/components/ui/button";
-import { DeleteButton } from "@/components/custom/resource-delete-button";
 import { useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2 } from "lucide-react";
 import { AccountRowActions } from "./row-actions";
-import { useList } from "@refinedev/core";
+import { useList, useNotification } from "@refinedev/core";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@components/ui/button";
+import { Copy } from "lucide-react";
+import { toast } from "sonner";
+
 
 
 export const useAccountColumns = (): ColumnDef<Account>[] => {
+  const { open: openNotification } = useNotification();
 
   const {
     result: { data: roles },
@@ -73,6 +75,61 @@ export const useAccountColumns = (): ColumnDef<Account>[] => {
         filterComponentProps: {
           placeholder: "搜索账号..."
         }
+      }
+    },
+    {
+      id: "status",
+      accessorKey: "status",
+      header: "状态",
+      enableSorting: true,
+      cell: ({ row }: any) => {
+        const status = row.getValue("status");
+        return <Badge variant={status === "active" ? "default" : "secondary"}>{status}</Badge>
+      },
+      meta: {
+        filterKey: "status",
+        filterType: "select",
+        filterOperator: "eq",
+        filterComponentProps: {
+          options: [
+            { label: "Active", value: "active" },
+            { label: "Inactive", value: "inactive" }
+          ],
+          placeholder: "状态"
+        }
+      }
+    },
+    {
+      id: "apiToken",
+      accessorKey: "apiToken",
+      header: "API Token",
+      enableSorting: false,
+      cell: ({ row }: any) => {
+        const token = row.getValue("apiToken");
+        if (!token) return <span className="text-muted-foreground">-</span>;
+
+        const handleCopy = () => {
+          navigator.clipboard.writeText(token);
+          openNotification?.({
+            type: "success",
+            message: "Copied to clipboard",
+            description: "API Token copied to clipboard",
+          });
+        };
+
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs">{token.substring(0, 8)}...</span>
+            <Button variant="ghost" size="icon" className="h-4 w-4" onClick={handleCopy}>
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
+        );
+      },
+      meta: {
+        filterKey: "apiToken",
+        filterType: "text",
+        filterOperator: "contains",
       }
     },
     {

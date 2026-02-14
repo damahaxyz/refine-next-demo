@@ -9,9 +9,9 @@ export async function getAllPermissions(): Promise<string[]> {
     return allPermissionStr.flat();
 }
 
-export async function getUserPermissions(userId: string): Promise<string[]> {
+export async function getUserPermissions(accountId: string): Promise<string[]> {
     const account = await prisma.account.findUnique({
-        where: { id: userId }
+        where: { id: accountId }
     });
 
     if (!account) return [];
