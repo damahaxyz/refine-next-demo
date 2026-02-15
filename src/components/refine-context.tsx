@@ -44,7 +44,7 @@ export const RefineContext = ({ children }: { children: React.ReactNode }) => {
                                 projectId: "ei08rB-8mMj2G-OLjuU7",
                                 liveMode: "auto",
                                 title: {
-                                    text: "量化管理系统",
+                                    text: "商品采集器",
                                     icon: <Logo width={32} height={32} />,
                                 }
                             }}
