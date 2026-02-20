@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon } from "lucide-react";
+import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon, Copy, ClipboardCopy, ClipboardPaste } from "lucide-react";
 import { ImageObject } from "../types";
+import { useCustomMutation } from "@refinedev/core";
+import { toast } from "sonner";
 
 export interface ImageEditProps {
     value?: ImageObject | null;
@@ -10,14 +13,24 @@ export interface ImageEditProps {
     // For variants/attributes, it's nice to allow removing the image
     onRemove?: () => void;
     label?: string; // Optional label for UI
+    productId?: string;
 }
 
-export function ImageEdit({ value, onChange, onRemove, label }: ImageEditProps) {
+export function ImageEdit({ value, onChange, onRemove, label, productId }: ImageEditProps) {
     const [open, setOpen] = useState(false);
     const [scale, setScale] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
+
+    const [isCropping, setIsCropping] = useState(false);
+    const [cropBox, setCropBox] = useState({ x: 50, y: 50, width: 200, height: 200 });
+    const [isDraggingCrop, setIsDraggingCrop] = useState(false);
+    const [isResizingCrop, setIsResizingCrop] = useState(false);
+    const cropDragStart = useRef({ x: 0, y: 0 });
+    const cropStartBox = useRef({ x: 0, y: 0, width: 0, height: 0 });
+    const [isCroppingLoading, setIsCroppingLoading] = useState(false);
+    const { mutateAsync: performCrop } = useCustomMutation();
 
     // Determines what image to show (processed preferably, then source)
     const effectiveImageUrl = value?.processedUrl || value?.sourceUrl;
@@ -35,8 +48,36 @@ export function ImageEdit({ value, onChange, onRemove, label }: ImageEditProps) 
         dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y };
     };
 
+    const handleCropMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingCrop(true);
+        cropDragStart.current = { x: e.clientX, y: e.clientY };
+        cropStartBox.current = { ...cropBox };
+    };
+
+    const handleCropResizeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsResizingCrop(true);
+        cropDragStart.current = { x: e.clientX, y: e.clientY };
+        cropStartBox.current = { ...cropBox };
+    };
+
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isDragging) {
+        if (isDraggingCrop) {
+            setCropBox(prev => ({
+                ...cropStartBox.current,
+                x: cropStartBox.current.x + (e.clientX - cropDragStart.current.x),
+                y: cropStartBox.current.y + (e.clientY - cropDragStart.current.y)
+            }));
+        } else if (isResizingCrop) {
+            setCropBox(prev => ({
+                ...cropStartBox.current,
+                width: Math.max(50, cropStartBox.current.width + (e.clientX - cropDragStart.current.x)),
+                height: Math.max(50, cropStartBox.current.height + (e.clientY - cropDragStart.current.y))
+            }));
+        } else if (isDragging) {
             setPosition({
                 x: e.clientX - dragStart.current.x,
                 y: e.clientY - dragStart.current.y
@@ -46,6 +87,8 @@ export function ImageEdit({ value, onChange, onRemove, label }: ImageEditProps) 
 
     const handleMouseUp = () => {
         setIsDragging(false);
+        setIsDraggingCrop(false);
+        setIsResizingCrop(false);
     };
 
     const handleWheelNative = useCallback((e: WheelEvent) => {
@@ -78,7 +121,85 @@ export function ImageEdit({ value, onChange, onRemove, label }: ImageEditProps) 
     };
 
     const handleCrop = () => {
-        alert("截图/裁剪功能接入中...");
+        setIsCropping(!isCropping);
+    };
+
+    const handleConfirmCrop = async () => {
+        if (!effectiveImageUrl || !onChange) return;
+        setIsCroppingLoading(true);
+        try {
+            const payload = {
+                imageUrl: effectiveImageUrl,
+                productId: productId || "new",
+                scale,
+                position,
+                cropBox,
+                container: {
+                    width: nodeRef.current?.clientWidth || 0,
+                    height: nodeRef.current?.clientHeight || 0,
+                }
+            };
+
+            const response = await performCrop({
+                url: "/api/ai/images/crop",
+                method: "post",
+                values: payload
+            });
+
+            const result = response.data as any;
+            if (result.success) {
+                onChange({ ...value, processedUrl: result.data.url } as ImageObject);
+                setIsCropping(false);
+            } else {
+                alert("裁剪失败: " + result.error);
+            }
+        } catch (e: any) {
+            alert("请求错误: " + e.message);
+        } finally {
+            setIsCroppingLoading(false);
+        }
+    };
+
+    const handleCopy = (isStrong: boolean) => {
+        if (!value) return;
+        try {
+            const clipboardData: ImageObject = { ...value };
+            if (isStrong) {
+                // Strong copy: regenerate a new unique ID, so crops won't synchronize with the source
+                clipboardData.id = crypto.randomUUID();
+            } else {
+                // Weak (soft) copy: preserve the ID, so crops will sync across all weak copies
+            }
+            localStorage.setItem("_refine_next_img_clipboard", JSON.stringify(clipboardData));
+            toast.success(isStrong ? "强复制成功" : "软复制成功", {
+                description: "图片已保存至剪贴板",
+            });
+        } catch (e) {
+            console.error("Copy failed", e);
+            toast.error("复制失败", {
+                description: "保存图片数据到剪贴板时出错",
+            });
+        }
+    };
+
+    const handlePaste = () => {
+        try {
+            const dataStr = localStorage.getItem("_refine_next_img_clipboard");
+            if (dataStr && onChange) {
+                const imgData = JSON.parse(dataStr) as ImageObject;
+                onChange(imgData);
+                toast.success("粘贴成功");
+            } else {
+                toast.error("粘贴失败", {
+                    description: "剪贴板中没有可用的图片数据",
+                });
+            }
+        } catch (e) {
+            console.error("Paste failed", e);
+            toast.error("粘贴失败", {
+                description: "读取剪贴板数据时发生错误",
+            });
+        }
     };
 
     return (
@@ -87,52 +208,124 @@ export function ImageEdit({ value, onChange, onRemove, label }: ImageEditProps) 
             if (!v) handleResetZoom(); // Reset zoom on close
         }}>
             {effectiveImageUrl ? (
-                <DialogTrigger asChild>
-                    <div className="relative group cursor-pointer border bg-muted/20 flex flex-col items-center justify-center hover:bg-muted/50 transition-colors">
-                        <div className="w-full flex items-center justify-center bg-black/5 overflow-hidden">
-                            <img
-                                src={effectiveImageUrl}
-                                alt="Product Preview"
-                                className="max-w-full max-h-full object-contain"
-                            />
-                        </div>
-                        <div className="absolute -top-1 -right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <HoverCard openDelay={200} closeDelay={100}>
+                    <HoverCardTrigger asChild>
+                        <DialogTrigger asChild>
+                            <div className="relative group cursor-pointer border bg-muted/20 flex flex-col items-center justify-center hover:bg-muted/50 transition-colors h-full w-full">
+                                <div className="w-full h-full flex items-center justify-center bg-black/5 overflow-hidden">
+                                    <img
+                                        src={effectiveImageUrl}
+                                        alt="Product Preview"
+                                        className="max-w-full max-h-full object-contain"
+                                    />
+                                </div>
+                                {label && (
+                                    <div className="text-[10px] mt-2 font-medium text-muted-foreground truncate w-full text-center">
+                                        {label}
+                                    </div>
+                                )}
+                            </div>
+                        </DialogTrigger>
+                    </HoverCardTrigger>
+                    <HoverCardContent side="top" align="center" className="w-auto p-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1">
                             {onRemove && (
                                 <Button
+                                    type="button"
                                     variant="destructive"
                                     size="icon"
-                                    className="h-4 w-4"
+                                    className="h-6 w-6"
                                     onClick={(e) => {
+                                        e.preventDefault();
                                         e.stopPropagation();
                                         onRemove();
                                     }}
+                                    title="移除图片"
                                 >
-                                    <X className="w-3 h-3" />
+                                    <X className="w-4 h-4" />
                                 </Button>
                             )}
+                            <div className="w-px h-6 bg-border mx-1" />
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleCopy(true);
+                                }}
+                                title="强复制 (独立副本)"
+                            >
+                                <Copy className="w-4 h-4" />
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleCopy(false);
+                                }}
+                                title="软复制 (同步更新关联)"
+                            >
+                                <Copy className="w-4 h-4" />
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handlePaste();
+                                }}
+                                title="粘贴"
+                            >
+                                <ClipboardPaste className="w-4 h-4" />
+                            </Button>
                         </div>
-                        {label && (
-                            <div className="text-[10px] mt-2 font-medium text-muted-foreground truncate w-full text-center">
-                                {label}
-                            </div>
-                        )}
-                    </div>
-                </DialogTrigger>
+                    </HoverCardContent>
+                </HoverCard>
             ) : (
-                <div
-                    className="relative group cursor-pointer border overflow-hidden bg-muted/20 flex flex-col items-center justify-center hover:bg-muted/50 transition-colors h-full w-full"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        const url = prompt("Enter Image URL");
-                        if (url && onChange) {
-                            onChange({ ...value, sourceUrl: url } as ImageObject);
-                        }
-                    }}
-                >
-                    <div className=" flex items-center justify-center text-muted-foreground hover:text-foreground">
-                        <ImageIcon className="w-6 h-6 opacity-50" />
-                    </div>
-                </div>
+                <HoverCard openDelay={200} closeDelay={100}>
+                    <HoverCardTrigger asChild>
+                        <div
+                            className="relative group cursor-pointer border overflow-hidden bg-muted/20 flex flex-col items-center justify-center hover:bg-muted/50 transition-colors h-full w-full"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                const url = prompt("Enter Image URL");
+                                if (url && onChange) {
+                                    onChange({ sourceUrl: url } as ImageObject);
+                                }
+                            }}
+                        >
+                            <div className="flex items-center justify-center text-muted-foreground hover:text-foreground">
+                                <ImageIcon className="w-6 h-6 opacity-50" />
+                            </div>
+                        </div>
+                    </HoverCardTrigger>
+                    <HoverCardContent side="top" align="center" className="w-auto p-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handlePaste();
+                            }}
+                            title="粘贴图片"
+                        >
+                            <ClipboardPaste className="w-4 h-4" />
+                        </Button>
+                    </HoverCardContent>
+                </HoverCard>
             )}
 
             {/* Modal Content */}
@@ -145,10 +338,15 @@ export function ImageEdit({ value, onChange, onRemove, label }: ImageEditProps) 
                                 <Languages className="w-4 h-4 mr-2" />
                                 翻译
                             </Button>
-                            <Button variant="outline" size="sm" onClick={handleCrop}>
+                            <Button variant="outline" size="sm" onClick={handleCrop} className={isCropping ? "bg-muted" : ""}>
                                 <Crop className="w-4 h-4 mr-2" />
-                                截图/裁剪
+                                {isCropping ? "取消裁剪" : "裁剪"}
                             </Button>
+                            {isCropping && (
+                                <Button variant="default" size="sm" onClick={handleConfirmCrop} disabled={isCroppingLoading} className="bg-blue-600 hover:bg-blue-700 text-white border-transparent">
+                                    确定裁剪
+                                </Button>
+                            )}
                             <div className="h-4 w-px bg-border mx-2" />
                             <Button variant="ghost" size="icon" onClick={handleZoomOut}>
                                 <ZoomOut className="w-4 h-4" />
@@ -171,6 +369,36 @@ export function ImageEdit({ value, onChange, onRemove, label }: ImageEditProps) 
                     onMouseUp={handleMouseUp}
                     onMouseLeave={handleMouseUp}
                 >
+                    {isCropping && (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                left: cropBox.x,
+                                top: cropBox.y,
+                                width: cropBox.width,
+                                height: cropBox.height,
+                                border: '2px dashed #3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                cursor: 'move',
+                                zIndex: 10,
+                            }}
+                            onMouseDown={handleCropMouseDown}
+                        >
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    bottom: -5,
+                                    right: -5,
+                                    width: 15,
+                                    height: 15,
+                                    backgroundColor: '#3b82f6',
+                                    borderRadius: '50%',
+                                    cursor: 'se-resize'
+                                }}
+                                onMouseDown={handleCropResizeMouseDown}
+                            />
+                        </div>
+                    )}
                     {effectiveImageUrl ? (
                         <div
                             className="origin-center select-none"
