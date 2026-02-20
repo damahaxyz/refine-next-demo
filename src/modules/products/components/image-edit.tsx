@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon, Copy, ClipboardCopy, ClipboardPaste, Wand2 } from "lucide-react";
+import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon, Copy, ClipboardCopy, ClipboardPaste, Wand2, Settings2 } from "lucide-react";
 import { ImageObject } from "../types";
 import { useCustomMutation } from "@refinedev/core";
 import { toast } from "sonner";
@@ -169,8 +169,7 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
         }
     };
 
-    const handleUpscale = async () => {
-        if (!effectiveImageUrl || !onChange) return;
+    const handleUpscaylWidthConfig = () => {
         const targetWidthInput = prompt(`请输入期望的最终图片宽度(像素)，留空则默认按 4x 比例放大：\n当前预设：${cachedUpscaylWidth}`, cachedUpscaylWidth);
         if (targetWidthInput === null) return; // User cancelled
         const parsedWidth = targetWidthInput.trim() ? parseInt(targetWidthInput.trim(), 10) : undefined;
@@ -182,8 +181,12 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
             localStorage.removeItem("_refine_next_upscayl_width");
             setCachedUpscaylWidth("");
         }
+    };
 
-        const targetWidth = parsedWidth;
+    const handleUpscale = async () => {
+        if (!effectiveImageUrl || !onChange) return;
+
+        const targetWidth = cachedUpscaylWidth ? parseInt(cachedUpscaylWidth, 10) : undefined;
 
         setIsUpscaling(true);
         try {
@@ -389,14 +392,27 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                                 <Languages className="w-4 h-4 mr-2" />
                                 翻译
                             </Button>
-                            <Button variant="outline" size="sm" onClick={handleUpscale} disabled={isUpscaling}>
-                                {isUpscaling ? (
-                                    <span className="w-4 h-4 mr-2 block rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                                ) : (
-                                    <Wand2 className="w-4 h-4 mr-2" />
-                                )}
-                                变高清 {cachedUpscaylWidth ? `(${cachedUpscaylWidth}px)` : "(默认 4x)"}
-                            </Button>
+                            <div className="flex bg-background border rounded-md overflow-hidden">
+                                <Button variant="ghost" size="sm" onClick={handleUpscale} disabled={isUpscaling} className="border-none rounded-none rounded-l-md pr-2">
+                                    {isUpscaling ? (
+                                        <span className="w-4 h-4 mr-2 block rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                                    ) : (
+                                        <Wand2 className="w-4 h-4 mr-2" />
+                                    )}
+                                    变高清 {cachedUpscaylWidth ? `(${cachedUpscaylWidth}px)` : "(默认 4x)"}
+                                </Button>
+                                <div className="w-px bg-border my-1" />
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-8 border-none rounded-none rounded-r-md"
+                                    onClick={handleUpscaylWidthConfig}
+                                    title="设置放大目标宽度"
+                                    disabled={isUpscaling}
+                                >
+                                    <Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
+                                </Button>
+                            </div>
                             <Button variant="outline" size="sm" onClick={handleCrop} className={isCropping ? "bg-muted" : ""}>
                                 <Crop className="w-4 h-4 mr-2" />
                                 {isCropping ? "取消裁剪" : "裁剪"}
