@@ -45,7 +45,7 @@ export function ProfileDropdown() {
               <div className='text-muted-foreground text-xs leading-none flex space-x-1 items-center'>
                 <span>角色:</span>
                 {
-                  user?.roles?.map((item: string) => <span className='text-xs px-1'>{item}</span>)
+                  user?.roles?.map((item: string) => <span key={item} className='text-xs px-1'>{item}</span>)
                 }
               </div>
             </div>

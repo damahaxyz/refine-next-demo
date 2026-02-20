@@ -1,6 +1,7 @@
 import z from "zod";
 
 export const ImageObjectSchema = z.object({
+    id: z.string().optional(),
     sourceUrl: z.string(),
     processedUrl: z.string().optional().nullable(),
 });

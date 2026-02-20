@@ -405,7 +405,7 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-9 w-8 border-none rounded-none rounded-r-md"
+                                    className="h-8 w-8 border-none rounded-none rounded-r-md"
                                     onClick={handleUpscaylWidthConfig}
                                     title="设置放大目标宽度"
                                     disabled={isUpscaling}

@@ -55,7 +55,7 @@ export async function POST(request: Request) {
             values: (attr.values || []).map((val: any) => ({
                 id: crypto.randomUUID(),
                 value: val.value,
-                image: val.image ? { sourceUrl: val.image } : undefined
+                image: val.image ? { id: val.image, sourceUrl: val.image } : undefined
             }))
         }));
 
@@ -96,7 +96,8 @@ export async function POST(request: Request) {
             }
             return {
                 ...variant,
-                image: variant.image ? { sourceUrl: variant.image } : undefined,
+                sellingPrice: variant.price || productData.price || 0,
+                image: variant.image ? { id: variant.image, sourceUrl: variant.image } : undefined,
                 attributeIdMap
             };
         });
@@ -120,12 +121,13 @@ export async function POST(request: Request) {
                 sourcePlatform: platform_type,
                 sourceId: productData.sourceId || null,
                 price: productData.price || 0,
-                images: (productData.images || []).map((img: string) => ({ sourceUrl: img })),
+                sellingPrice: productData.price || 0,
+                images: (productData.images || []).map((img: string) => ({ id: img, sourceUrl: img })),
                 variants: processedVariants,
                 attributes: processedAttributes, // Save the new structure
                 videos: productData.videos || [],
                 description: productData.description || "",
-                descriptionImages: (productData.descriptionImages || []).map((img: string) => ({ sourceUrl: img })),
+                descriptionImages: (productData.descriptionImages || []).map((img: string) => ({ id: img, sourceUrl: img })),
                 status: "draft",
                 collectedAt: new Date(),
             }

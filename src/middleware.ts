@@ -13,6 +13,7 @@ const publicPaths = [
 const noPermissionRequiredPaths = [
     { path: '/api/permissions', method: 'GET' },
     { path: '/api/ai/product/title/generation', method: 'POST' },
+    { path: '/api/ai/images/crop', method: 'POST' },
 ];
 
 export async function middleware(request: NextRequest) {
