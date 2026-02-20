@@ -35,7 +35,7 @@ export const useShopColumns = (): ColumnDef<Shop>[] => {
         {
             id: "name",
             accessorKey: "name",
-            header: "Name",
+            header: "店铺名称",
             enableSorting: true,
             meta: {
                 filterKey: "name",
@@ -46,7 +46,7 @@ export const useShopColumns = (): ColumnDef<Shop>[] => {
         {
             id: "type",
             accessorKey: "type",
-            header: "Type",
+            header: "类型",
             enableSorting: true,
             cell: ({ row }) => <Badge variant="outline">{row.original.type}</Badge>
         },
@@ -59,7 +59,7 @@ export const useShopColumns = (): ColumnDef<Shop>[] => {
         },
         {
             id: "isActive",
-            header: "Status",
+            header: "状态",
             accessorKey: "isActive",
             cell: ({ row }) => {
                 return row.original.isActive ? <Badge>Active</Badge> : <Badge variant="secondary">Inactive</Badge>
@@ -68,14 +68,14 @@ export const useShopColumns = (): ColumnDef<Shop>[] => {
         {
             id: "createdAt",
             accessorKey: "createdAt",
-            header: "Created",
+            header: "创建时间",
             cell: ({ row }) => {
                 return new Date(row.original.createdAt).toLocaleDateString();
             }
         },
         {
             id: "actions",
-            header: "Actions",
+            header: "操作",
             cell: ({ row }: any) => <ShopRowActions row={row.original} />,
             enableSorting: false,
         },

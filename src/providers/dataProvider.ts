@@ -1,39 +1,17 @@
+
 import { DataProvider } from "@refinedev/core";
-import { TOKEN_KEY } from "./authProvider";
+import { get, post, patch, del, put } from "@/lib/http";
 
 const API_URL = "/api";
 
-const fetcher = async (url: string, options: RequestInit = {}) => {
-  const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
-  const headers = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  };
-
-  const response = await fetch(url, { ...options, headers });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
-  }
-
-  return response;
-};
-
 export const dataProvider: DataProvider = {
   getOne: async ({ resource, id }) => {
-    const response = await fetcher(`${API_URL}/${resource}/${id}`);
-    const json = await response.json();
+    const json = await get(`${API_URL}/${resource}/${id}`);
     return { data: json.data };
   },
 
   update: async ({ resource, id, variables }) => {
-    const response = await fetcher(`${API_URL}/${resource}/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(variables),
-    });
-    const json = await response.json();
+    const json = await patch(`${API_URL}/${resource}/${id}`, variables);
     return { data: json.data };
   },
 
@@ -92,11 +70,10 @@ export const dataProvider: DataProvider = {
       });
     }
 
-    const response = await fetcher(url.toString());
-    const json = await response.json();
+    const json = await get(url.toString());
 
     // Fallback if total is missing
-    const total = json.total !== undefined ? json.total : (json.data ? json.data.length : 0);
+    const total = json.total !== undefined ? json.total : (json.data ? json.data ? json.data.length : 0 : 0);
 
     return {
       data: json.data,
@@ -105,31 +82,22 @@ export const dataProvider: DataProvider = {
   },
 
   create: async ({ resource, variables }) => {
-    const response = await fetcher(`${API_URL}/${resource}`, {
-      method: "POST",
-      body: JSON.stringify(variables),
-    });
-    const json = await response.json();
+    const json = await post(`${API_URL}/${resource}`, variables);
     return { data: json.data };
   },
 
   deleteOne: async ({ resource, id }) => {
-    await fetcher(`${API_URL}/${resource}/${id}`, {
-      method: "DELETE",
-    });
+    await del(`${API_URL}/${resource}/${id}`, {});
     return { data: { id } as any };
   },
 
   getApiUrl: () => API_URL,
 
-  // Optional methods fallback
   getMany: async ({ resource, ids }) => {
-    // This is a naive implementation using Promise.all since the backend lacks batch support
     if (!ids) return { data: [] };
     const data = await Promise.all(
       ids.map(async (id) => {
-        const response = await fetcher(`${API_URL}/${resource}/${id}`);
-        const json = await response.json();
+        const json = await get(`${API_URL}/${resource}/${id}`);
         return json.data;
       })
     );
@@ -137,14 +105,16 @@ export const dataProvider: DataProvider = {
   },
 
   custom: async ({ url, method, filters, sorters, payload, query, headers }) => {
-    let requestUrl = `${url}?`;
+    let requestUrl = `${url}`;
+
+    // If url is relative but doesn't start with /, adhere to convention or adjust.
+    // Assuming standard URL handling.
+
+    const urlObj = new URL(requestUrl, typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
 
     if (sorters && sorters.length > 0) {
-      const sortQuery = {
-        _sort: sorters.map((s) => s.field).join(","),
-        _order: sorters.map((s) => s.order).join(","),
-      };
-      requestUrl = `${requestUrl}&${new URLSearchParams(sortQuery).toString()}`;
+      urlObj.searchParams.set("_sort", sorters.map((s) => s.field).join(","));
+      urlObj.searchParams.set("_order", sorters.map((s) => s.order).join(","));
     }
 
     if (filters) {
@@ -153,8 +123,6 @@ export const dataProvider: DataProvider = {
           const { field, operator, value } = filter;
           if (value === undefined || value === null || value === "") return;
 
-          // Reuse logic or simplify for custom? 
-          // Ideally we should extract a helper but for now copy-paste for safety to avoid messing imports
           let key = field;
           let val = String(value);
 
@@ -168,28 +136,40 @@ export const dataProvider: DataProvider = {
               if (Array.isArray(value)) val = value.join(",");
               break;
           }
-          requestUrl = `${requestUrl}&${key}=${val}`;
+          urlObj.searchParams.set(key, val);
         }
       });
     }
 
     if (query) {
-      requestUrl = `${requestUrl}&${new URLSearchParams(query as any).toString()}`;
+      Object.entries(query).forEach(([k, v]) => {
+        urlObj.searchParams.set(k, String(v));
+      });
     }
 
-    // Default to API_URL prefix if url is relative? 
-    // Usually useCustom url is passed as is. But if it starts with /, we might want to prepend domain?
-    // fetcher handles relative URLs if they don't include protocol.
-    // But fetcher expects `${API_URL}/${resource}...` usuallly.
-    // If user passes `/api/permissions`, fetcher will call `fetch("/api/permissions")`. Correct.
+    const finalUrl = urlObj.toString();
+    let json;
 
-    const response = await fetcher(requestUrl, {
-      method,
-      headers: headers as any,
-      body: payload ? JSON.stringify(payload) : undefined,
-    });
+    switch (method) {
+      case "get":
+        json = await get(finalUrl);
+        break;
+      case "post":
+        json = await post(finalUrl, payload);
+        break;
+      case "patch":
+        json = await patch(finalUrl, payload);
+        break;
+      case "put":
+        json = await put(finalUrl, payload);
+        break;
+      case "delete":
+        json = await del(finalUrl, payload);
+        break;
+      default:
+        throw new Error(`Unsupported method ${method}`);
+    }
 
-    const json = await response.json();
     return { data: json };
   },
 };

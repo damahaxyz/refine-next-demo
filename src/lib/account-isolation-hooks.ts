@@ -19,6 +19,7 @@ export const accountIsolationHooks = {
         }
         return query;
     },
+
     onBeforeDeleteMany: async (query: QueryOptions) => {
         const loginInfo = await getCurrentLoginInfo();
         if (!loginInfo) throw new Error("Unauthorized");

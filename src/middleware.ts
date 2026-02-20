@@ -7,10 +7,12 @@ import pluralize from 'pluralize'
 const publicPaths = [
     '/api/accounts/login',
     '/api/accounts/register',
+    '/api/collector/products',
 ];
 // 2. 定义不需要权限的路径（但仍需认证，即 "NoAuth" for RBAC）
 const noPermissionRequiredPaths = [
     { path: '/api/permissions', method: 'GET' },
+    { path: '/api/ai/product/title/generation', method: 'POST' },
 ];
 
 export async function middleware(request: NextRequest) {

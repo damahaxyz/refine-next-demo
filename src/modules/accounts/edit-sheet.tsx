@@ -177,7 +177,7 @@ export function AccountEditSheet({
                                             maxDisplayNumber={4}
                                             useSelectOptions={{
                                                 resource: "roles",
-                                                optionLabel: item => item.name,
+                                                optionLabel: item => item?.name,
                                             }} />
                                     </FormControl>
                                 </FormItem>

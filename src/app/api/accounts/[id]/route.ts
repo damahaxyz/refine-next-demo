@@ -1,18 +1,19 @@
 
-import { createCrudHandlers } from "@/lib/api-handler";
+import { createCrudHandlers, QueryOptions } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma-db";
+
 import { hash } from "bcryptjs";
 
 const handlers = createCrudHandlers({
     model: prisma.account,
     auth: { module: "ACCOUNT" },
-    onBeforeUpdate: async (id, data: any) => {
-        if (data.password) {
+    onBeforeUpdate: async (where, data) => {
+        if (data?.password) {
             data.password = await hash(data.password, 10);
         } else {
             delete data.password;
         }
-        return data;
+        return { where, data };
     }
 });
 

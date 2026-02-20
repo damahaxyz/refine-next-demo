@@ -179,7 +179,7 @@ export function createCrudHandlers(options: CrudOptions) {
                         where = updateOptions.where;
                         data = updateOptions.data;
                     }
-                    let updated = await Model.update(where, data);
+                    let updated = await Model.update({ where, data });
                     if (options.onAfterUpdate) {
                         updated = await options.onAfterUpdate(updated) || updated;
                     }
@@ -236,15 +236,15 @@ export function createCrudHandlers(options: CrudOptions) {
 
                 if (id) {
                     // Delete One
-                    let where = { id };
+                    let query: any = { where: { id } };
                     if (options.onBeforeDelete) {
-                        where = await options.onBeforeDelete({ where });
+                        query = await options.onBeforeDelete(query) || query;
                     }
-                    await Model.delete({ where });
+                    const deleted = await Model.delete(query);
                     if (options.onAfterDelete) {
-                        await options.onAfterDelete({ where });
+                        await options.onAfterDelete(deleted);
                     }
-                    return NextResponse.json({ code: 0, message: "success", success: true });
+                    return NextResponse.json({ code: 0, message: "success", success: true, data: deleted });
                 } else {
                     // Batch Delete
                     let ids: string[] = [];
@@ -274,17 +274,15 @@ export function createCrudHandlers(options: CrudOptions) {
                         return NextResponse.json({ code: 400, message: "Missing ids for batch delete" }, { status: 400 });
                     }
 
-                    let where = { id: { in: ids } };
+                    let query: any = { where: { id: { in: ids } } };
                     if (options.onBeforeDeleteMany) {
-                        where = await options.onBeforeDeleteMany({ where });
+                        query = await options.onBeforeDeleteMany(query) || query;
                     }
-                    await Model.deleteMany({
-                        where
-                    });
+                    const result = await Model.deleteMany(query);
                     if (options.onAfterDeleteMany) {
-                        await options.onAfterDeleteMany({ where });
+                        await options.onAfterDeleteMany(result);
                     }
-                    return NextResponse.json({ code: 0, message: "success", success: true });
+                    return NextResponse.json({ code: 0, message: "success", success: true, data: result });
                 }
             } catch (e: any) {
                 console.error(e);

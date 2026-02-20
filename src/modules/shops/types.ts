@@ -12,6 +12,15 @@ export const ShopSchema = z.object({
     defaultLanguage: z.string(),
     defaultCurrency: z.string(),
     isActive: z.boolean(),
+    categories: z.array(z.object({
+        id: z.number(),
+        name: z.string(),
+        parent: z.number().optional(),
+    })).optional().nullable(),
+    tags: z.array(z.object({
+        id: z.number(),
+        name: z.string(),
+    })).optional().nullable(),
     createdAt: z.date(),
     updatedAt: z.date(),
 });

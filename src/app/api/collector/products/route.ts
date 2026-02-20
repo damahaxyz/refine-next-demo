@@ -1,6 +1,6 @@
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma-db";
-import * as cheerio from "cheerio";
 
 export async function POST(request: Request) {
     try {
@@ -28,119 +28,107 @@ export async function POST(request: Request) {
         });
 
         const body = await request.json();
-        const { url, html, platform_type } = body;
+        const { url, html, platform_type, product: clientParsedProduct } = body;
 
-        if (!url || !html) {
-            return NextResponse.json({ error: "Missing required fields: url, html" }, { status: 400 });
+        if (!url) {
+            return NextResponse.json({ error: "Missing required fields: url" }, { status: 400 });
         }
 
-        // Parse HTML
-        const $ = cheerio.load(html);
-        const productData = {
-            title: "",
-            price: 0,
-            images: [] as string[],
-            description: "",
-            sourceId: "",
-            platform: platform_type
-        };
+        let productData;
 
-        // 1. Generic Metadata Extraction (Fallback)
-        const ogTitle = $('meta[property="og:title"]').attr('content') || $('title').text();
-        const ogImage = $('meta[property="og:image"]').attr('content');
-        const ogDesc = $('meta[property="og:description"]').attr('content');
+        if (clientParsedProduct) {
+            console.log("Using client-side parsed data");
+            productData = clientParsedProduct;
+        } else {
+            return NextResponse.json({ error: "Missing required fields: html or product data" }, { status: 400 });
+        }
 
-        productData.title = ogTitle?.trim() || "Untitled Product";
-        productData.description = ogDesc?.trim() || "";
-        if (ogImage) productData.images.push(ogImage);
+        // Additional cleanup if needed (already mostly done in parsers)
+        if (Array.isArray(productData.images)) {
+            productData.images = productData.images.filter((i: string) => i && i.startsWith('http'));
+        }
 
-        // 2. Platform Specific Parsing
-        try {
-            switch (platform_type) {
-                case 'TAOBAO':
-                    // Try to find Taobao specific fields
-                    // Title often in h1 or specific classes
-                    // Price is tricky in static HTML as it's often JS rendered, but we can try meta or hidden inputs
-                    const tbTitle = $('h1').text().trim();
-                    if (tbTitle) productData.title = tbTitle;
+        // Generate UUIDs for Attributes and Values
+        const processedAttributes = (productData.attributes || []).map((attr: any) => ({
+            id: crypto.randomUUID(),
+            name: attr.name,
+            values: (attr.values || []).map((val: any) => ({
+                id: crypto.randomUUID(),
+                value: val.value,
+                image: val.image ? { sourceUrl: val.image } : undefined
+            }))
+        }));
 
-                    // Try finding price in scripts or specific elements if visible in static HTML
-                    // Note: Taobao prices are often difficult to get from raw HTML without executing JS.
-                    // We rely on what the extension captured (which is the rendered DOM).
-                    const tbPrice = $('.price').first().text() || $('.tb-main-price').text();
-                    if (tbPrice) {
-                        const match = tbPrice.match(/[\d.]+/);
-                        if (match) productData.price = parseFloat(match[0]);
-                    }
+        // Create a lookup map: AttributeName:ValueName -> ValueID
+        // We also need AttributeName -> AttributeID to handle keys
+        const valueIdMap: Record<string, string> = {}; // "Color:Red" -> uuid
+        const attributeIdLookup: Record<string, string> = {}; // "Color" -> uuid
 
-                    // Images
-                    $('#J_UlThumb img').each((_, el) => {
-                        let src = $(el).attr('src') || $(el).attr('data-src');
-                        if (src) {
-                            if (src.startsWith('//')) src = 'https:' + src;
-                            productData.images.push(src.replace(/_\d+x\d+.*$/, '')); // Get full size
-                        }
+        processedAttributes.forEach((attr: any) => {
+            attributeIdLookup[attr.name] = attr.id;
+            attr.values.forEach((val: any) => {
+                valueIdMap[`${attr.name}:${val.value}`] = val.id;
+            });
+        });
+
+        // Process Variants to use attributeIdMap
+        const processedVariants = (productData.variants || []).map((variant: any) => {
+            const attributeIdMap: Record<string, string[]> = {};
+            if (variant.attributes) {
+                Object.entries(variant.attributes).forEach(([key, value]) => {
+                    // key is Attribute Name, value is Value Name (or array of names if we supported that in collector, but usually variants have 1 value per attr)
+                    // We need to find the IDs
+                    const attrId = attributeIdLookup[key];
+
+                    // Handle if value is a string (legacy/current collector) or array (future proof)
+                    const values = Array.isArray(value) ? value : [value];
+                    const valIds: string[] = [];
+
+                    values.forEach((v: any) => {
+                        const valId = valueIdMap[`${key}:${v as string}`];
+                        if (valId) valIds.push(valId);
                     });
-                    break;
 
-                case '1688':
-                    const alTitle = $('.title-text').text().trim() || $('.d-title').text().trim();
-                    if (alTitle) productData.title = alTitle;
-
-                    const alPrice = $('.ref-price').text() || $('.price-text').text();
-                    if (alPrice) {
-                        const match = alPrice.match(/[\d.]+/);
-                        if (match) productData.price = parseFloat(match[0]);
+                    if (attrId && valIds.length > 0) {
+                        attributeIdMap[attrId] = valIds;
                     }
-
-                    // 1688 Gallery
-                    $('.detail-gallery-img').each((_, el) => {
-                        let src = $(el).attr('src');
-                        if (src) productData.images.push(src);
-                    });
-                    break;
-
-                case 'AMAZON':
-                    productData.title = $('#productTitle').text().trim() || productData.title;
-                    const amzPrice = $('.a-price .a-offscreen').first().text();
-                    if (amzPrice) {
-                        const match = amzPrice.match(/[\d.]+/);
-                        if (match) productData.price = parseFloat(match[0]);
-                    }
-                    $('#landingImage, #imgBlkFront').each((_, el) => {
-                        const src = $(el).attr('src');
-                        if (src) productData.images.push(src);
-                    });
-                    break;
-
-                case 'SHOPIFY':
-                    // Shopify often has handy JSON-LD or meta globals
-                    // Doing basic meta fallback mostly works for Shopify
-                    const shopifyPrice = $('meta[property="og:price:amount"]').attr('content');
-                    if (shopifyPrice) productData.price = parseFloat(shopifyPrice);
-                    break;
+                });
             }
-        } catch (e) {
-            console.warn("Parsing error:", e);
-        }
+            return {
+                ...variant,
+                image: variant.image ? { sourceUrl: variant.image } : undefined,
+                attributeIdMap
+            };
+        });
 
-        // Uniqueness cleanup
-        productData.images = Array.from(new Set(productData.images)).filter(i => i.startsWith('http'));
+        // Find the first active shop for this account to associate with
+        const activeShop = await prisma.shop.findFirst({
+            where: {
+                accountId: collectorToken.accountId,
+                isActive: true
+            }
+        });
 
         // Create Product
         const product = await prisma.product.create({
             data: {
+
                 accountId: collectorToken.accountId,
-                title: productData.title,
+                shopId: activeShop?.id,
+                title: productData.title || "Untitled Product",
                 sourceUrl: url,
                 sourcePlatform: platform_type,
-                sourceId: productData.sourceId, // Might be empty if not parsed
+                sourceId: productData.sourceId || null,
                 price: productData.price || 0,
-                images: JSON.stringify(productData.images),
-                description: productData.description,
+                images: (productData.images || []).map((img: string) => ({ sourceUrl: img })),
+                variants: processedVariants,
+                attributes: processedAttributes, // Save the new structure
+                videos: productData.videos || [],
+                description: productData.description || "",
+                descriptionImages: (productData.descriptionImages || []).map((img: string) => ({ sourceUrl: img })),
                 status: "draft",
                 collectedAt: new Date(),
-            },
+            }
         });
 
         return NextResponse.json({ success: true, data: product });

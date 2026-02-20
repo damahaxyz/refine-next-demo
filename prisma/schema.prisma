@@ -50,36 +50,38 @@ model SystemConfig {
 }
 
 model Product {
-  id                    String    @id @default(cuid())
-  accountId             String
-  account               Account   @relation(fields: [accountId], references: [id])
-  sourceUrl             String
-  sourcePlatform        String
-  sourceId              String?
-  title                 String
-  titleTranslated       String?
-  description           String
-  descriptionTranslated String?
-  price                 Float
-  priceCurrency         String    @default("CNY")
-  sellingPrice          Float?
-  sellingCurrency       String?   @default("USD")
-  hasVariants           Boolean   @default(false)
-  variants              Json? // [{ id, price, sellingPrice, stock, attributes, ... }]
-  specs                 Json?
-  images                Json
-  imagesProcessed       Json?
-  categories            Json?
-  status                String    @default("draft") // draft, translated, ready, published, archived
-  shopId                String?
-  shop                  Shop?     @relation(fields: [shopId], references: [id])
-  externalId            String?
-  targetLanguage        String?   @default("en")
-  translatedAt          DateTime?
-  publishedAt           DateTime?
-  collectedAt           DateTime  @default(now())
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  accountId         String
+  account           Account   @relation(fields: [accountId], references: [id])
+  sourceUrl         String
+  sourcePlatform    String
+  sourceId          String?
+  title             String
+  titleTranslated   String?
+  description       String
+  descriptionImages Json?
+  price             Float
+  priceCurrency     String    @default("CNY")
+  sellingPrice      Float?
+  sellingCurrency   String?   @default("USD")
+  hasVariants       Boolean   @default(false)
+  variants          Json? // [{ id, price, sellingPrice, stock, attributeIdMap: { "AttrId": ["ValId1", "ValId2"] }, ... }]
+  attributes        Json? // [{ id, name, values: [{id, value, image}] }]
+  videos            Json?
+  images            Json
+  categories        Json?
+  tags              Json?
+  keywords          String?
+  status            String    @default("draft") // draft, translated, ready, published, archived
+  shopId            String?
+  shop              Shop?     @relation(fields: [shopId], references: [id])
+  externalId        String?
+  targetLanguage    String?   @default("en")
+  translatedAt      DateTime?
+  publishedAt       DateTime?
+  collectedAt       DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 model Shop {
@@ -98,6 +100,8 @@ model Shop {
   products        Product[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  categories      Json? // [{ id, name, parentId }]
+  tags            Json? // [{ id, name }]
 }
 
 model CollectorToken {

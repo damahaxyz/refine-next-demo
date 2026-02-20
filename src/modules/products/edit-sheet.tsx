@@ -59,7 +59,7 @@ export function ProductEditSheet({
             status: (currentRow?.status as any) || "draft",
             hasVariants: currentRow?.hasVariants ?? false,
             variants: currentRow?.variants ? JSON.stringify(currentRow.variants, null, 2) : "",
-            images: currentRow?.images ? (currentRow.images as string[]).join("\n") : "",
+            images: currentRow?.images ? (currentRow.images as any[]).map(img => img.sourceUrl || img).join("\n") : "",
         } as ProductFormData,
         refineCoreProps: {
             resource: "products",
@@ -75,7 +75,7 @@ export function ProductEditSheet({
         const submissionData: any = {
             ...values,
             variants: values.variants ? JSON.parse(values.variants) : null,
-            images: values.images ? values.images.split("\n").filter(Boolean) : [],
+            images: values.images ? values.images.split("\n").filter(Boolean).map(url => ({ sourceUrl: url })) : [],
         };
 
         await onFinish(submissionData);

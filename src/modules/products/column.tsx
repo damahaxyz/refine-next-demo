@@ -33,11 +33,11 @@ export const useProductColumns = (): ColumnDef<Product>[] => {
             size: 40,
         },
         {
-            id: "image",
+            id: "images",
             header: "图片",
             cell: ({ row }) => {
-                const images = row.original.images as string[];
-                const firstImage = images && images.length > 0 ? images[0] : null;
+                const images = row.original.images as any[];
+                const firstImage = images && images.length > 0 ? (images[0]?.processedUrl || images[0]?.sourceUrl || images[0]) : null;
                 return firstImage ? <img src={firstImage} alt="product" className="w-10 h-10 object-cover rounded" /> : <div className="w-10 h-10 bg-gray-200 rounded"></div>
             },
             enableSorting: false,

@@ -75,6 +75,23 @@ export function SelectDropdownCommandMutiple({
   }, [options, fetchedOptions]);
 
 
+  // ✅ Clean up selected values that are no longer in the options list
+  React.useEffect(() => {
+    if (selectOptions.length === 0) return;
+
+    // Only check if we have values to check
+    if (value.length === 0) return;
+
+    const validValues = value.filter(val =>
+      selectOptions.some(opt => opt.value === val)
+    );
+
+    if (validValues.length !== value.length) {
+      onValueChange?.(validValues);
+    }
+  }, [selectOptions, value, onValueChange]);
+
+
   return (
     <Popover>
       <PopoverTrigger asChild>
