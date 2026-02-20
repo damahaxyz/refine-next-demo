@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon, Copy, ClipboardCopy, ClipboardPaste } from "lucide-react";
+import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon, Copy, ClipboardCopy, ClipboardPaste, Wand2 } from "lucide-react";
 import { ImageObject } from "../types";
 import { useCustomMutation } from "@refinedev/core";
 import { toast } from "sonner";
@@ -30,10 +30,19 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
     const cropDragStart = useRef({ x: 0, y: 0 });
     const cropStartBox = useRef({ x: 0, y: 0, width: 0, height: 0 });
     const [isCroppingLoading, setIsCroppingLoading] = useState(false);
+    const [isUpscaling, setIsUpscaling] = useState(false);
+    const [cachedUpscaylWidth, setCachedUpscaylWidth] = useState<string>("1200");
     const { mutateAsync: performCrop } = useCustomMutation();
 
     // Determines what image to show (processed preferably, then source)
     const effectiveImageUrl = value?.processedUrl || value?.sourceUrl;
+
+    useEffect(() => {
+        const savedWidth = localStorage.getItem("_refine_next_upscayl_width");
+        if (savedWidth) {
+            setCachedUpscaylWidth(savedWidth);
+        }
+    }, []);
 
     const handleZoomIn = () => setScale(s => Math.min(s + 0.05, 3));
     const handleZoomOut = () => setScale(s => Math.max(s - 0.05, 0.1));
@@ -157,6 +166,48 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
             alert("请求错误: " + e.message);
         } finally {
             setIsCroppingLoading(false);
+        }
+    };
+
+    const handleUpscale = async () => {
+        if (!effectiveImageUrl || !onChange) return;
+        const targetWidthInput = prompt(`请输入期望的最终图片宽度(像素)，留空则默认按 4x 比例放大：\n当前预设：${cachedUpscaylWidth}`, cachedUpscaylWidth);
+        if (targetWidthInput === null) return; // User cancelled
+        const parsedWidth = targetWidthInput.trim() ? parseInt(targetWidthInput.trim(), 10) : undefined;
+
+        if (parsedWidth && !isNaN(parsedWidth)) {
+            localStorage.setItem("_refine_next_upscayl_width", parsedWidth.toString());
+            setCachedUpscaylWidth(parsedWidth.toString());
+        } else if (!targetWidthInput.trim()) {
+            localStorage.removeItem("_refine_next_upscayl_width");
+            setCachedUpscaylWidth("");
+        }
+
+        const targetWidth = parsedWidth;
+
+        setIsUpscaling(true);
+        try {
+            const res = await fetch("/api/ai/images/upscayl", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    imageUrl: effectiveImageUrl,
+                    productId: productId || "new",
+                    model: "ultrasharp-4x",
+                    ...(targetWidth && !isNaN(targetWidth) ? { width: targetWidth } : {}),
+                }),
+            });
+            const result = await res.json();
+            if (result.success && result.data?.url) {
+                toast.success("变高清成功", { description: "已应用新图片" });
+                onChange({ ...value, processedUrl: result.data.url } as ImageObject);
+            } else {
+                toast.error("变高清失败", { description: result.error || "未知错误" });
+            }
+        } catch (e: any) {
+            toast.error("请求错误", { description: e.message });
+        } finally {
+            setIsUpscaling(false);
         }
     };
 
@@ -337,6 +388,14 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                             <Button variant="outline" size="sm" onClick={handleTranslate}>
                                 <Languages className="w-4 h-4 mr-2" />
                                 翻译
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handleUpscale} disabled={isUpscaling}>
+                                {isUpscaling ? (
+                                    <span className="w-4 h-4 mr-2 block rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                                ) : (
+                                    <Wand2 className="w-4 h-4 mr-2" />
+                                )}
+                                变高清 {cachedUpscaylWidth ? `(${cachedUpscaylWidth}px)` : "(默认 4x)"}
                             </Button>
                             <Button variant="outline" size="sm" onClick={handleCrop} className={isCropping ? "bg-muted" : ""}>
                                 <Crop className="w-4 h-4 mr-2" />
