@@ -32,7 +32,7 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
     const [isCroppingLoading, setIsCroppingLoading] = useState(false);
     const [isUpscaling, setIsUpscaling] = useState(false);
     const [cachedUpscaylWidth, setCachedUpscaylWidth] = useState<string>("1200");
-    const { mutateAsync: performCrop } = useCustomMutation();
+    const { mutateAsync: mutateAsync } = useCustomMutation();
 
     // Determines what image to show (processed preferably, then source)
     const effectiveImageUrl = value?.processedUrl || value?.sourceUrl;
@@ -149,7 +149,7 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                 }
             };
 
-            const response = await performCrop({
+            const response = await mutateAsync({
                 url: "/api/ai/images/crop",
                 method: "post",
                 values: payload
@@ -190,17 +190,17 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
 
         setIsUpscaling(true);
         try {
-            const res = await fetch("/api/ai/images/upscayl", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
+            const response = await mutateAsync({
+                url: "/api/ai/images/upscayl",
+                method: "post",
+                values: {
                     imageUrl: effectiveImageUrl,
                     productId: productId || "new",
                     model: "ultrasharp-4x",
                     ...(targetWidth && !isNaN(targetWidth) ? { width: targetWidth } : {}),
-                }),
+                },
             });
-            const result = await res.json();
+            const result = response.data as any;
             if (result.success && result.data?.url) {
                 toast.success("变高清成功", { description: "已应用新图片" });
                 onChange({ ...value, processedUrl: result.data.url } as ImageObject);

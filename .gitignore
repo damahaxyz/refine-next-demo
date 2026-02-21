@@ -28,6 +28,13 @@ yarn-error.log*
 # local env files
 .env
 .env*.local
+.env.production
+
+# data
+dev.db
+/data
+/storage
+/public/products
 
 # vercel
 .vercel

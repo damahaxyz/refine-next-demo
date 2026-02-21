@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Trash2, ArrowLeft, Save, Plus, X, Check, Languages, Sparkles, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -253,7 +252,7 @@ export const ProductEditForm = () => {
     };
 
     if (queryResult?.isLoading) {
-        return <div>Loading...</div>;
+        return <Page><div>Loading...</div></Page>;
     }
 
     return (
@@ -616,6 +615,7 @@ export const ProductEditForm = () => {
                                                                         handleGlobalImageChange(newVal);
                                                                     }}
                                                                     onRemove={() => form.setValue(`attributes.${index}.values.${vIndex}.image`, undefined)}
+                                                                    productId={product?.id}
                                                                 />
                                                             </div>
                                                             <Input
@@ -717,6 +717,7 @@ export const ProductEditForm = () => {
                                                                         handleGlobalImageChange(newVal);
                                                                     }}
                                                                     onRemove={() => form.setValue(`variants.${index}.image`, undefined)}
+                                                                    productId={product?.id}
                                                                 />
                                                             </div>
                                                         </FormItem>
@@ -835,6 +836,7 @@ export const ProductEditForm = () => {
                                                             field.onChange(arr);
                                                         }}
                                                         label={imgObj.processedUrl ? "Processed" : "Source"}
+                                                        productId={product?.id}
                                                     />
                                                 ))}
                                                 <div className="flex flex-col items-center justify-center border-2 border-dashed rounded aspect-square cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {
@@ -877,6 +879,7 @@ export const ProductEditForm = () => {
                                                             field.onChange(arr);
                                                         }}
                                                         label={imgObj.processedUrl ? "Processed" : "Source"}
+                                                        productId={product?.id}
                                                     />
                                                 ))}
                                                 <div className="flex flex-col items-center justify-center border-2 border-dashed rounded aspect-[1/2] cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {

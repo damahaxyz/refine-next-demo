@@ -60,13 +60,32 @@ export async function POST(req: NextRequest) {
             command += ` -w ${width}`;
         }
 
+        let upscaylSuccess = false;
         try {
             await execAsync(command);
+            upscaylSuccess = true;
         } catch (execError: any) {
-            console.error("Upscayl binary execution failed:", execError);
-            // Cleanup input if possible
-            await fs.unlink(tmpIn).catch(() => { });
-            return NextResponse.json({ success: false, error: "Image upscaling failed: " + execError.message }, { status: 500 });
+            console.warn("Upscayl binary failed, falling back to sharp:", execError.message);
+        }
+
+        // Fallback to sharp if upscayl fails (e.g. no GPU)
+        if (!upscaylSuccess) {
+            try {
+                const sharp = (await import("sharp")).default;
+                const metadata = await sharp(tmpIn).metadata();
+                const targetWidth = (width && !isNaN(width)) ? Number(width) : (metadata.width || 800) * 2;
+                await sharp(tmpIn)
+                    .resize(targetWidth, null, {
+                        kernel: "lanczos3",
+                        withoutEnlargement: false,
+                    })
+                    .png()
+                    .toFile(tmpOut);
+            } catch (sharpError: any) {
+                console.error("Sharp fallback also failed:", sharpError);
+                await fs.unlink(tmpIn).catch(() => { });
+                return NextResponse.json({ success: false, error: "Image upscaling failed: " + sharpError.message }, { status: 500 });
+            }
         }
 
         // Read output and move to final destination
