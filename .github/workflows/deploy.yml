@@ -1,64 +1,66 @@
 name: Deploy to Server
 
 on:
-    push:
-        branches: [main]
-    workflow_dispatch:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 env:
-    REMOTE_DIR: /root/erp
+  REMOTE_DIR: /root/erp
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Setup SSH key
-              run: |
-                  mkdir -p ~/.ssh
-                  echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
-                  chmod 600 ~/.ssh/id_rsa
-                  ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-            - name: Create .env.production on server
-              run: |
-                  ssh root@${{ secrets.SERVER_HOST }} "cat > ${{ env.REMOTE_DIR }}/.env.production << 'EOF'
-                  ${{ secrets.ENV_PRODUCTION }}
-                  EOF"
+      - name: Create .env.production on server
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} "cat > ${{ env.REMOTE_DIR }}/.env.production << 'EOF'
+          ${{ secrets.ENV_PRODUCTION }}
+          EOF"
 
-            - name: Sync files to server
-              run: |
-                  rsync -avz --delete \
-                    --exclude 'node_modules' \
-                    --exclude '.next' \
-                    --exclude '.git' \
-                    --exclude '.DS_Store' \
-                    --exclude 'dev.db' \
-                    --exclude 'data' \
-                    --exclude 'storage' \
-                    ./ root@${{ secrets.SERVER_HOST }}:${{ env.REMOTE_DIR }}/
+      - name: Sync files to server
+        run: |
+          rsync -avz --delete \
+            --exclude 'node_modules' \
+            --exclude '.next' \
+            --exclude '.git' \
+            --exclude '.DS_Store' \
+            --exclude 'dev.db' \
+            --exclude 'data' \
+            --exclude 'storage' \
+            --exclude '.env.production' \
+            ./ root@${{ secrets.SERVER_HOST }}:${{ env.REMOTE_DIR }}/
 
-            - name: Build and deploy
-              uses: appleboy/ssh-action@v1
-              with:
-                  host: ${{ secrets.SERVER_HOST }}
-                  username: root
-                  key: ${{ secrets.SERVER_SSH_KEY }}
-                  script: |
-                      cd /root/erp
+      - name: Build and deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            cd /root/erp
 
-                      # Ensure data directories exist
-                      mkdir -p data storage
+            # Ensure data directories exist
+            mkdir -p data storage
 
-                      # Build and restart
-                      docker compose up -d --build
+            # Build and restart
+            docker compose up -d --build
 
-                      # Fix permissions
-                      chown -R 1001:1001 /root/erp/storage/ /root/erp/data/
+            # Fix permissions
+            chown -R 1001:1001 /root/erp/storage/ /root/erp/data/
 
-                      # Reload nginx
-                      nginx -t && nginx -s reload
+            # Reload nginx
+            nginx -t && nginx -s reload
 
-                      echo "✅ Deploy complete!"
+            echo "✅ Deploy complete!"
