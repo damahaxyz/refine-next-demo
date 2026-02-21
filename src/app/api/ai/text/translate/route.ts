@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
+import { getAidcApiUrl } from "@/lib/aidc";
 
 export async function POST(req: NextRequest) {
     try {
@@ -10,14 +10,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Missing source text." }, { status: 400 });
         }
 
-        const appKey = process.env.AIDGE_APP_KEY || process.env.AIDGE_API_KEY;
-        const appSecret = process.env.AIDGE_APP_SECRET || process.env.AIDGE_API_KEY;
-
-        if (!appKey || !appSecret) {
-            return NextResponse.json({ error: "API credentials (AIDGE_APP_KEY and AIDGE_APP_SECRET) are not fully configured in .env." }, { status: 500 });
-        }
-
         console.log(`[Aidge] Requesting translation for text, Lang: ${targetLanguage}`);
+
+        let apiUrl: string;
+        try {
+            apiUrl = getAidcApiUrl("/ai/text/marco/translator");
+        } catch (e: any) {
+            return NextResponse.json({ error: e.message }, { status: 500 });
+        }
 
         const textArray = Array.isArray(text) ? text : [text];
 
@@ -30,16 +30,6 @@ export async function POST(req: NextRequest) {
         if (sourceLanguage) {
             payload.sourceLanguage = sourceLanguage;
         }
-
-        const timestamp = Date.now().toString();
-        // sign = HmacSHA256(secret+timestamp, secret).toUpperCase()
-        const signString = `${appSecret}${timestamp}`;
-        const signature = crypto.createHmac('sha256', appSecret).update(signString).digest('hex').toUpperCase();
-
-        const baseUrl = "https://cn-api.aidc-ai.com/rest";
-        const apiPath = "/ai/text/marco/translator";
-
-        const apiUrl = `${baseUrl}${apiPath}?partner_id=aidge&sign_method=sha256&sign_ver=v2&app_key=${appKey}&timestamp=${timestamp}&sign=${signature}`;
 
         const response = await fetch(apiUrl, {
             method: "POST",

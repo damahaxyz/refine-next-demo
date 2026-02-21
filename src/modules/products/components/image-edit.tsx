@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon, Copy, ClipboardCopy, ClipboardPaste, Wand2, Settings2, Undo2, ClipboardCheck, ClipboardPlus, ClipboardList } from "lucide-react";
+import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon, Copy, ClipboardCopy, ClipboardPaste, Wand2, Settings2, Undo2, ClipboardCheck, ClipboardPlus, ClipboardList, Loader2 } from "lucide-react";
 import { ImageObject } from "../types";
 import { useCustomMutation } from "@refinedev/core";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
     const cropStartBox = useRef({ x: 0, y: 0, width: 0, height: 0 });
     const [isCroppingLoading, setIsCroppingLoading] = useState(false);
     const [isUpscaling, setIsUpscaling] = useState(false);
+    const [isTranslating, setIsTranslating] = useState(false);
     const [cachedUpscaylWidth, setCachedUpscaylWidth] = useState<string>("1200");
     const { mutateAsync: mutateAsync } = useCustomMutation();
 
@@ -121,12 +122,32 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
         nodeRef.current = node;
     }, [handleWheelNative]);
 
-    const handleTranslate = () => {
-        if (!value?.sourceUrl || !onChange) return;
-        // Mock translation process
-        alert("翻译功能接入中...");
-        // Mocking setting the processed URL
-        // onChange({ ...value, processedUrl: value.sourceUrl + "?translated=true" });
+    const handleTranslate = async () => {
+        if (!effectiveImageUrl || !onChange) return;
+
+        setIsTranslating(true);
+        try {
+            const response = await mutateAsync({
+                url: "/api/ai/images/translate",
+                method: "post",
+                values: {
+                    imageUrl: effectiveImageUrl,
+                    targetLanguage: "en",
+                    productId: productId,
+                }
+            });
+            const result = response.data as any;
+            if (result.success && result.data?.url) {
+                toast.success("图片翻译成功", { description: "已应用带翻译的新图片" });
+                onChange({ ...value, processedUrl: result.data.url } as ImageObject);
+            } else {
+                toast.error("图片翻译失败", { description: result.error || "未知错误" });
+            }
+        } catch (e: any) {
+            toast.error("请求错误", { description: e.message });
+        } finally {
+            setIsTranslating(false);
+        }
     };
 
     const handleCrop = () => {
@@ -407,8 +428,12 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                     <DialogTitle className="flex items-center justify-between">
                         <span>图片编辑预览</span>
                         <div className="flex items-center gap-2 pr-6"> {/* pr-6 to avoid overlap with DialogClose Dialog primitive */}
-                            <Button variant="outline" size="sm" onClick={handleTranslate}>
-                                <Languages className="w-4 h-4 mr-2" />
+                            <Button variant="outline" size="sm" onClick={handleTranslate} disabled={isTranslating}>
+                                {isTranslating ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Languages className="w-4 h-4 mr-2" />
+                                )}
                                 翻译
                             </Button>
                             <div className="flex bg-background border rounded-md overflow-hidden">
