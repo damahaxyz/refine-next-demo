@@ -60,7 +60,8 @@ jobs:
             # Fix permissions
             chown -R 1001:1001 /root/erp/storage/ /root/erp/data/
 
-            # Reload nginx
+            # Apply and reload nginx
+            cp /root/erp/nginx-erp.conf /etc/nginx/conf.d/erp.conf
             nginx -t && nginx -s reload
 
             echo "✅ Deploy complete!"
