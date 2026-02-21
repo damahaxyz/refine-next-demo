@@ -339,6 +339,28 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                                 </Button>
                             )}
                             <div className="w-px h-6 bg-border mx-1" />
+                            {onChange && (
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    disabled={isTranslating}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleTranslate();
+                                    }}
+                                    title="一键翻译"
+                                >
+                                    {isTranslating ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Languages className="w-4 h-4" />
+                                    )}
+                                </Button>
+                            )}
+                            <div className="w-px h-6 bg-border mx-1" />
                             <Button
                                 type="button"
                                 variant="secondary"
@@ -420,7 +442,8 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                         </Button>
                     </HoverCardContent>
                 </HoverCard>
-            )}
+            )
+            }
 
             {/* Modal Content */}
             <DialogContent className="max-w-[65vw] sm:max-w-[65vw] w-[95vw] h-[95vh] flex flex-col p-0 gap-0 overflow-hidden">
@@ -542,7 +565,7 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                     )}
                 </div>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     );
 }
 
