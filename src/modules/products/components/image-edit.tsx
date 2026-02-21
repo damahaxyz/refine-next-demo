@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon, Copy, ClipboardCopy, ClipboardPaste, Wand2, Settings2 } from "lucide-react";
+import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon, Copy, ClipboardCopy, ClipboardPaste, Wand2, Settings2, Undo2, ClipboardCheck, ClipboardPlus, ClipboardList } from "lucide-react";
 import { ImageObject } from "../types";
 import { useCustomMutation } from "@refinedev/core";
 import { toast } from "sonner";
@@ -299,10 +299,28 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                                     <X className="w-4 h-4" />
                                 </Button>
                             )}
+                            {value?.processedUrl && onChange && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        const { processedUrl, ...rest } = value;
+                                        onChange(rest as ImageObject);
+                                        toast.success("已还原为原图");
+                                    }}
+                                    title="还原原图"
+                                >
+                                    <Undo2 className="w-4 h-4" />
+                                </Button>
+                            )}
                             <div className="w-px h-6 bg-border mx-1" />
                             <Button
                                 type="button"
-                                variant="destructive"
+                                variant="secondary"
                                 size="icon"
                                 className="h-6 w-6"
                                 onClick={(e) => {
@@ -312,7 +330,7 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                                 }}
                                 title="强复制 (独立副本)"
                             >
-                                <Copy className="w-4 h-4" />
+                                <ClipboardList className="w-4 h-4" />
                             </Button>
                             <Button
                                 type="button"
@@ -326,7 +344,7 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                                 }}
                                 title="软复制 (同步更新关联)"
                             >
-                                <Copy className="w-4 h-4" />
+                                <ClipboardPlus className="w-4 h-4" />
                             </Button>
                             <Button
                                 type="button"
@@ -340,8 +358,9 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                                 }}
                                 title="粘贴"
                             >
-                                <ClipboardPaste className="w-4 h-4" />
+                                <ClipboardCheck className="w-4 h-4" />
                             </Button>
+
                         </div>
                     </HoverCardContent>
                 </HoverCard>
