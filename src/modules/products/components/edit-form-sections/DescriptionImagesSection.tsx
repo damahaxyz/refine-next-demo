@@ -32,8 +32,6 @@ export function DescriptionImagesSection({ control, handleGlobalImageChange, pro
                                         key={idx}
                                         value={imgObj}
                                         onChange={(newVal: any) => {
-                                            debugger;
-                                            console.log("onChange triggered in descriptionImages", idx, newVal);
                                             const arr = [...ensureArray(field.value)];
                                             if (newVal) arr[idx] = newVal;
                                             field.onChange(arr);

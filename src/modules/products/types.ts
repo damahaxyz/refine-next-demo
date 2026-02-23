@@ -4,7 +4,7 @@ export const ImageObjectSchema = z.object({
     id: z.string().optional(),
     sourceUrl: z.string(),
     processedUrl: z.string().optional().nullable(),
-    aidcSchema: z.string().optional().nullable(),
+    editorSchema: z.string().optional().nullable(),
 });
 
 export const VariantSchema = z.object({

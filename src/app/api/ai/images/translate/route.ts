@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
             success: true,
             data: {
                 url: newUrl,
-                aidcSchema: editorRestore || ""
+                editorSchema: editorRestore || ""
             }
         });
     } catch (error: any) {
