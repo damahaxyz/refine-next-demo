@@ -24,10 +24,8 @@ export function ActionDialogs() {
                     open={open == "system-config-edit"}
                     onOpenChange={() => {
                         setOpen("system-config-edit");
-                        console.log("onOpenChange");
                         setTimeout(() => {
                             setCurrentRow(null);
-                            console.log("setCurrentRow(null)");
                         }, 500);
                     }}
                 />

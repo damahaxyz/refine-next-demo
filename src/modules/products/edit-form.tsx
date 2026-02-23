@@ -203,7 +203,6 @@ export const ProductEditForm = () => {
                 maybeUpdateImage(v.image);
             });
         }
-        console.log("isModified", isModified);
         // If at least one instance got updated, trigger a form rerender by pushing back
         if (isModified) {
             form.reset(currentValues, { keepDefaultValues: true, keepDirty: true });
