@@ -244,11 +244,14 @@ export const ProductEditForm = () => {
                 maybeUpdateImage(v.image);
             });
         }
-
+        console.log("isModified", isModified);
         // If at least one instance got updated, trigger a form rerender by pushing back
         if (isModified) {
             form.reset(currentValues, { keepDefaultValues: true, keepDirty: true });
         }
+        setTimeout(() => {
+            form.handleSubmit(onFinish)();
+        }, 0);
     };
 
     if (queryResult?.isLoading) {
@@ -346,7 +349,7 @@ export const ProductEditForm = () => {
                                             <FormItem>
                                                 <FormLabel>原价 (RMB)</FormLabel>
                                                 <FormControl>
-                                                    <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                                                    <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseFloat(e.target.value))} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -868,6 +871,8 @@ export const ProductEditForm = () => {
                                                         key={idx}
                                                         value={imgObj}
                                                         onChange={(newVal) => {
+                                                            debugger;
+                                                            console.log("onChange triggered in descriptionImages", idx, newVal);
                                                             const arr = [...ensureArray(field.value)];
                                                             if (newVal) arr[idx] = newVal;
                                                             field.onChange(arr);

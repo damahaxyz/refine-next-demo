@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon, Copy, ClipboardCopy, ClipboardPaste, Wand2, Settings2, Undo2, ClipboardCheck, ClipboardPlus, ClipboardList, Loader2 } from "lucide-react";
+import { X, Languages, ZoomIn, ZoomOut, Crop, Image as ImageIcon, ClipboardPaste, Wand2, Settings2, Undo2, ClipboardCheck, ClipboardPlus, ClipboardList, Loader2 } from "lucide-react";
 import { ImageObject } from "../types";
 import { useCustomMutation } from "@refinedev/core";
 import { toast } from "sonner";
@@ -36,10 +36,20 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
     const [cachedUpscaylWidth, setCachedUpscaylWidth] = useState<string>("1200");
     const { mutateAsync: mutateAsync } = useCustomMutation();
 
+    const onChangeRef = useRef(onChange);
+    const valueRef = useRef(value);
+    const productIdRef = useRef(productId);
+
+    useEffect(() => {
+        onChangeRef.current = onChange;
+        valueRef.current = value;
+        productIdRef.current = productId;
+    });
+
     useEffect(() => {
         if (!isAidcEditorOpen) return;
 
-        const handleMessage = async (event: MessageEvent) => {
+        const handleMessage = async function (event: MessageEvent) {
             console.log("handleMessage", event);
             if (!event.data) return;
 
@@ -55,21 +65,27 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
             }
 
             const { type, data } = postData || {};
+            console.log("Parsed postData:", { type, data });
 
-            if (type === 'base64') {
-                if (data) {
+            if (type === 'submit') {
+                console.log("type is submit, data length:", data?.length);
+                if (data && data.length) {
                     try {
-                        const res = await fetch("/api/images/save-external", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ base64: data, productId: productId || "new" })
+                        const response = await mutateAsync({
+                            url: "/api/images/save-external",
+                            method: "post",
+                            values: { base64: data[0].base64, productId: productIdRef.current || "new" }
                         });
-                        const resData = await res.json();
-                        if (resData.url && onChange) {
-                            onChange({
-                                ...value,
+                        const resData = response.data as any;
+                        console.log("mutateAsync resolved, resData:", resData);
+                        if (resData.url && onChangeRef.current) {
+                            const newImg = {
+                                ...valueRef.current,
                                 processedUrl: resData.url,
-                            } as ImageObject);
+                                aidcSchema: JSON.stringify(data[0].psd),
+                            } as ImageObject;
+                            console.log("Calling onChangeRef.current from handleMessage (AIDC editor):", newImg);
+                            onChangeRef.current(newImg);
                             toast.success("二次编辑保存成功");
                         } else {
                             throw new Error(resData.error || "Save failed");
@@ -80,20 +96,12 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                         setIsAidcEditorOpen(false);
                     }
                 }
-            } else if (type === 'psd' || type === 'submit') {
-                if (data && onChange && value?.processedUrl) {
-                    // Optionally update the schema if the editor fires this separately
-                    onChange({
-                        ...value,
-                        aidcSchema: typeof data === 'string' ? data : JSON.stringify(data)
-                    } as ImageObject);
-                }
             }
         };
 
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, [isAidcEditorOpen, productId, value, onChange]);
+    }, [isAidcEditorOpen, mutateAsync]);
 
     // Determines what image to show (processed preferably, then source)
     const effectiveImageUrl = value?.processedUrl || value?.sourceUrl;
@@ -199,7 +207,9 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
             const result = response.data as any;
             if (result.success && result.data?.url) {
                 toast.success("图片翻译成功", { description: "已应用带翻译的新图片" });
-                onChange({ ...value, processedUrl: result.data.url, aidcSchema: result.data.aidcSchema } as ImageObject);
+                const newImg = { ...value, processedUrl: result.data.url, aidcSchema: result.data.aidcSchema } as ImageObject;
+                console.log("Calling onChange from handleTranslate:", newImg);
+                onChange(newImg);
             } else {
                 toast.error("图片翻译失败", { description: result.error || "未知错误" });
             }
@@ -238,7 +248,9 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
 
             const result = response.data as any;
             if (result.success) {
-                onChange({ ...value, processedUrl: result.data.url } as ImageObject);
+                const newImg = { ...value, processedUrl: result.data.url } as ImageObject;
+                console.log("Calling onChange from handleConfirmCrop:", newImg);
+                onChange(newImg);
                 setIsCropping(false);
             } else {
                 alert("裁剪失败: " + result.error);
@@ -284,7 +296,9 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
             const result = response.data as any;
             if (result.success && result.data?.url) {
                 toast.success("变高清成功", { description: "已应用新图片" });
-                onChange({ ...value, processedUrl: result.data.url } as ImageObject);
+                const newImg = { ...value, processedUrl: result.data.url } as ImageObject;
+                console.log("Calling onChange from handleUpscale:", newImg);
+                onChange(newImg);
             } else {
                 toast.error("变高清失败", { description: result.error || "未知错误" });
             }
@@ -676,7 +690,7 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
                                         const postData = {
                                             sourceLang: 'zh',
                                             targetLang: 'en',
-                                            templateJson: schemaParsed,
+                                            templateJson: [schemaParsed],
                                             locale: 'zh-cn'
                                         };
                                         iframe.contentWindow.postMessage(JSON.stringify(postData), '*');
