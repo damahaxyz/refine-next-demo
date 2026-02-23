@@ -7,13 +7,19 @@
   },
   "scripts": {
     "dev": "cross-env NODE_OPTIONS='--max_old_space_size=4096' refine dev",
-    "dev:debug": "next dev --webpack",
+    "dev:debug": "next dev --webpack --experimental-https",
+    "dev:https": "next dev --experimental-https --webpack",
     "build": "refine build",
     "start": "refine start",
     "lint": "next lint",
     "refine": "refine"
   },
   "dependencies": {
+    "@alicloud/alimt20181012": "^1.4.2",
+    "@alicloud/credentials": "^2.4.4",
+    "@alicloud/openapi-client": "^0.4.15",
+    "@alicloud/tea-typescript": "^1.8.0",
+    "@alicloud/tea-util": "^1.4.11",
     "@hookform/resolvers": "^5.2.2",
     "@libsql/client": "^0.17.0",
     "@prisma/adapter-better-sqlite3": "^7.4.0",

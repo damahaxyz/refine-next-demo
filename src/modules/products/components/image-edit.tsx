@@ -32,8 +32,68 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
     const [isCroppingLoading, setIsCroppingLoading] = useState(false);
     const [isUpscaling, setIsUpscaling] = useState(false);
     const [isTranslating, setIsTranslating] = useState(false);
+    const [isAidcEditorOpen, setIsAidcEditorOpen] = useState(false);
     const [cachedUpscaylWidth, setCachedUpscaylWidth] = useState<string>("1200");
     const { mutateAsync: mutateAsync } = useCustomMutation();
+
+    useEffect(() => {
+        if (!isAidcEditorOpen) return;
+
+        const handleMessage = async (event: MessageEvent) => {
+            console.log("handleMessage", event);
+            if (!event.data) return;
+
+            let postData: any;
+            try {
+                if (typeof event.data === 'string') {
+                    postData = JSON.parse(event.data);
+                } else {
+                    postData = event.data;
+                }
+            } catch (e) {
+                return; // Ignore invalid JSON messages
+            }
+
+            const { type, data } = postData || {};
+
+            if (type === 'base64') {
+                if (data) {
+                    try {
+                        const res = await fetch("/api/images/save-external", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ base64: data, productId: productId || "new" })
+                        });
+                        const resData = await res.json();
+                        if (resData.url && onChange) {
+                            onChange({
+                                ...value,
+                                processedUrl: resData.url,
+                            } as ImageObject);
+                            toast.success("二次编辑保存成功");
+                        } else {
+                            throw new Error(resData.error || "Save failed");
+                        }
+                    } catch (e: any) {
+                        toast.error("保存编辑结果失败", { description: e.message });
+                    } finally {
+                        setIsAidcEditorOpen(false);
+                    }
+                }
+            } else if (type === 'psd' || type === 'submit') {
+                if (data && onChange && value?.processedUrl) {
+                    // Optionally update the schema if the editor fires this separately
+                    onChange({
+                        ...value,
+                        aidcSchema: typeof data === 'string' ? data : JSON.stringify(data)
+                    } as ImageObject);
+                }
+            }
+        };
+
+        window.addEventListener("message", handleMessage);
+        return () => window.removeEventListener("message", handleMessage);
+    }, [isAidcEditorOpen, productId, value, onChange]);
 
     // Determines what image to show (processed preferably, then source)
     const effectiveImageUrl = value?.processedUrl || value?.sourceUrl;
@@ -139,7 +199,7 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
             const result = response.data as any;
             if (result.success && result.data?.url) {
                 toast.success("图片翻译成功", { description: "已应用带翻译的新图片" });
-                onChange({ ...value, processedUrl: result.data.url } as ImageObject);
+                onChange({ ...value, processedUrl: result.data.url, aidcSchema: result.data.aidcSchema } as ImageObject);
             } else {
                 toast.error("图片翻译失败", { description: result.error || "未知错误" });
             }
@@ -277,295 +337,358 @@ export function ImageEdit({ value, onChange, onRemove, label, productId }: Image
         }
     };
 
+    let editorUrl = "";
+    if (isAidcEditorOpen && value?.sourceUrl) {
+        editorUrl = "https://www.alifanyi.com/erp/imageTrans.html";
+    }
+
     return (
-        <Dialog open={open} onOpenChange={(v) => {
-            setOpen(v);
-            if (!v) handleResetZoom(); // Reset zoom on close
-        }}>
-            {effectiveImageUrl ? (
-                <HoverCard openDelay={200} closeDelay={100}>
-                    <HoverCardTrigger asChild>
-                        <DialogTrigger asChild>
-                            <div className="relative group cursor-pointer border bg-muted/20 flex flex-col items-center justify-center hover:bg-muted/50 transition-colors h-full w-full">
-                                <div className="w-full h-full flex items-center justify-center bg-black/5 overflow-hidden">
-                                    <img
-                                        src={effectiveImageUrl}
-                                        alt="Product Preview"
-                                        className="max-w-full max-h-full object-contain"
-                                    />
-                                </div>
-                                {label && (
-                                    <div className="text-[10px] mt-2 font-medium text-muted-foreground truncate w-full text-center">
-                                        {label}
+        <>
+            <Dialog open={open} onOpenChange={(v) => {
+                setOpen(v);
+                if (!v) handleResetZoom(); // Reset zoom on close
+            }}>
+                {effectiveImageUrl ? (
+                    <HoverCard openDelay={200} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                            <DialogTrigger asChild>
+                                <div className="relative group cursor-pointer border bg-muted/20 flex flex-col items-center justify-center hover:bg-muted/50 transition-colors h-full w-full">
+                                    <div className="w-full h-full flex items-center justify-center bg-black/5 overflow-hidden">
+                                        <img
+                                            src={effectiveImageUrl}
+                                            alt="Product Preview"
+                                            className="max-w-full max-h-full object-contain"
+                                        />
                                     </div>
+                                    {label && (
+                                        <div className="text-[10px] mt-2 font-medium text-muted-foreground truncate w-full text-center">
+                                            {label}
+                                        </div>
+                                    )}
+                                </div>
+                            </DialogTrigger>
+                        </HoverCardTrigger>
+                        <HoverCardContent side="top" align="center" className="w-auto p-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1">
+                                {onRemove && (
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onRemove();
+                                        }}
+                                        title="移除图片"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </Button>
                                 )}
-                            </div>
-                        </DialogTrigger>
-                    </HoverCardTrigger>
-                    <HoverCardContent side="top" align="center" className="w-auto p-2" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-1">
-                            {onRemove && (
-                                <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        onRemove();
-                                    }}
-                                    title="移除图片"
-                                >
-                                    <X className="w-4 h-4" />
-                                </Button>
-                            )}
-                            {value?.processedUrl && onChange && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        const { processedUrl, ...rest } = value;
-                                        onChange(rest as ImageObject);
-                                        toast.success("已还原为原图");
-                                    }}
-                                    title="还原原图"
-                                >
-                                    <Undo2 className="w-4 h-4" />
-                                </Button>
-                            )}
-                            <div className="w-px h-6 bg-border mx-1" />
-                            {onChange && (
+                                {value?.processedUrl && onChange && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            const { processedUrl, ...rest } = value;
+                                            onChange(rest as ImageObject);
+                                            toast.success("已还原为原图");
+                                        }}
+                                        title="还原原图"
+                                    >
+                                        <Undo2 className="w-4 h-4" />
+                                    </Button>
+                                )}
+                                <div className="w-px h-6 bg-border mx-1" />
+                                {onChange && (
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        disabled={isTranslating}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handleTranslate();
+                                        }}
+                                        title="一键翻译"
+                                    >
+                                        {isTranslating ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Languages className="w-4 h-4" />
+                                        )}
+                                    </Button>
+                                )}
+                                {onChange && value?.processedUrl && (
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setIsAidcEditorOpen(true);
+                                        }}
+                                        title="二次编辑"
+                                    >
+                                        <Wand2 className="w-4 h-4" />
+                                    </Button>
+                                )}
+                                <div className="w-px h-6 bg-border mx-1" />
                                 <Button
                                     type="button"
                                     variant="secondary"
                                     size="icon"
                                     className="h-6 w-6"
-                                    disabled={isTranslating}
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        handleTranslate();
+                                        handleCopy(true);
                                     }}
-                                    title="一键翻译"
+                                    title="强复制 (独立副本)"
                                 >
-                                    {isTranslating ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                        <Languages className="w-4 h-4" />
-                                    )}
+                                    <ClipboardList className="w-4 h-4" />
                                 </Button>
-                            )}
-                            <div className="w-px h-6 bg-border mx-1" />
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                size="icon"
-                                className="h-6 w-6"
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleCopy(false);
+                                    }}
+                                    title="软复制 (同步更新关联)"
+                                >
+                                    <ClipboardPlus className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handlePaste();
+                                    }}
+                                    title="粘贴"
+                                >
+                                    <ClipboardCheck className="w-4 h-4" />
+                                </Button>
+
+                            </div>
+                        </HoverCardContent>
+                    </HoverCard>
+                ) : (
+                    <HoverCard openDelay={200} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                            <div
+                                className="relative group cursor-pointer border overflow-hidden bg-muted/20 flex flex-col items-center justify-center hover:bg-muted/50 transition-colors h-full w-full"
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    e.stopPropagation();
-                                    handleCopy(true);
+                                    const url = prompt("Enter Image URL");
+                                    if (url && onChange) {
+                                        onChange({ sourceUrl: url } as ImageObject);
+                                    }
                                 }}
-                                title="强复制 (独立副本)"
                             >
-                                <ClipboardList className="w-4 h-4" />
-                            </Button>
+                                <div className="flex items-center justify-center text-muted-foreground hover:text-foreground">
+                                    <ImageIcon className="w-6 h-6 opacity-50" />
+                                </div>
+                            </div>
+                        </HoverCardTrigger>
+                        <HoverCardContent side="top" align="center" className="w-auto p-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                                 type="button"
                                 variant="secondary"
                                 size="icon"
-                                className="h-6 w-6"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleCopy(false);
-                                }}
-                                title="软复制 (同步更新关联)"
-                            >
-                                <ClipboardPlus className="w-4 h-4" />
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                size="icon"
-                                className="h-6 w-6"
+                                className="h-8 w-8"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     handlePaste();
                                 }}
-                                title="粘贴"
+                                title="粘贴图片"
                             >
-                                <ClipboardCheck className="w-4 h-4" />
+                                <ClipboardPaste className="w-4 h-4" />
                             </Button>
+                        </HoverCardContent>
+                    </HoverCard>
+                )
+                }
 
-                        </div>
-                    </HoverCardContent>
-                </HoverCard>
-            ) : (
-                <HoverCard openDelay={200} closeDelay={100}>
-                    <HoverCardTrigger asChild>
-                        <div
-                            className="relative group cursor-pointer border overflow-hidden bg-muted/20 flex flex-col items-center justify-center hover:bg-muted/50 transition-colors h-full w-full"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                const url = prompt("Enter Image URL");
-                                if (url && onChange) {
-                                    onChange({ sourceUrl: url } as ImageObject);
-                                }
-                            }}
-                        >
-                            <div className="flex items-center justify-center text-muted-foreground hover:text-foreground">
-                                <ImageIcon className="w-6 h-6 opacity-50" />
-                            </div>
-                        </div>
-                    </HoverCardTrigger>
-                    <HoverCardContent side="top" align="center" className="w-auto p-2" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handlePaste();
-                            }}
-                            title="粘贴图片"
-                        >
-                            <ClipboardPaste className="w-4 h-4" />
-                        </Button>
-                    </HoverCardContent>
-                </HoverCard>
-            )
-            }
-
-            {/* Modal Content */}
-            <DialogContent className="max-w-[65vw] sm:max-w-[65vw] w-[95vw] h-[95vh] flex flex-col p-0 gap-0 overflow-hidden">
-                <DialogHeader className="p-4 border-b bg-muted/10 shrink-0">
-                    <DialogTitle className="flex items-center justify-between">
-                        <span>图片编辑预览</span>
-                        <div className="flex items-center gap-2 pr-6"> {/* pr-6 to avoid overlap with DialogClose Dialog primitive */}
-                            <Button variant="outline" size="sm" onClick={handleTranslate} disabled={isTranslating}>
-                                {isTranslating ? (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
-                                    <Languages className="w-4 h-4 mr-2" />
-                                )}
-                                翻译
-                            </Button>
-                            <div className="flex bg-background border rounded-md overflow-hidden">
-                                <Button variant="ghost" size="sm" onClick={handleUpscale} disabled={isUpscaling} className="border-none rounded-none rounded-l-md pr-2">
-                                    {isUpscaling ? (
-                                        <span className="w-4 h-4 mr-2 block rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                {/* Modal Content */}
+                <DialogContent className="max-w-[65vw] sm:max-w-[65vw] w-[95vw] h-[95vh] flex flex-col p-0 gap-0 overflow-hidden">
+                    <DialogHeader className="p-4 border-b bg-muted/10 shrink-0">
+                        <DialogTitle className="flex items-center justify-between">
+                            <span>图片编辑预览</span>
+                            <div className="flex items-center gap-2 pr-6"> {/* pr-6 to avoid overlap with DialogClose Dialog primitive */}
+                                <Button variant="outline" size="sm" onClick={handleTranslate} disabled={isTranslating}>
+                                    {isTranslating ? (
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                     ) : (
-                                        <Wand2 className="w-4 h-4 mr-2" />
+                                        <Languages className="w-4 h-4 mr-2" />
                                     )}
-                                    变高清 {cachedUpscaylWidth ? `(${cachedUpscaylWidth}px)` : "(默认 4x)"}
+                                    翻译
                                 </Button>
-                                <div className="w-px bg-border my-1" />
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 border-none rounded-none rounded-r-md"
-                                    onClick={handleUpscaylWidthConfig}
-                                    title="设置放大目标宽度"
-                                    disabled={isUpscaling}
-                                >
-                                    <Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
+                                <div className="flex bg-background border rounded-md overflow-hidden">
+                                    <Button variant="ghost" size="sm" onClick={handleUpscale} disabled={isUpscaling} className="border-none rounded-none rounded-l-md pr-2">
+                                        {isUpscaling ? (
+                                            <span className="w-4 h-4 mr-2 block rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                                        ) : (
+                                            <Wand2 className="w-4 h-4 mr-2" />
+                                        )}
+                                        变高清 {cachedUpscaylWidth ? `(${cachedUpscaylWidth}px)` : "(默认 4x)"}
+                                    </Button>
+                                    <div className="w-px bg-border my-1" />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 border-none rounded-none rounded-r-md"
+                                        onClick={handleUpscaylWidthConfig}
+                                        title="设置放大目标宽度"
+                                        disabled={isUpscaling}
+                                    >
+                                        <Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
+                                    </Button>
+                                </div>
+                                <Button variant="outline" size="sm" onClick={handleCrop} className={isCropping ? "bg-muted" : ""}>
+                                    <Crop className="w-4 h-4 mr-2" />
+                                    {isCropping ? "取消裁剪" : "裁剪"}
+                                </Button>
+                                {isCropping && (
+                                    <Button variant="default" size="sm" onClick={handleConfirmCrop} disabled={isCroppingLoading} className="bg-blue-600 hover:bg-blue-700 text-white border-transparent">
+                                        确定裁剪
+                                    </Button>
+                                )}
+                                <div className="h-4 w-px bg-border mx-2" />
+                                <Button variant="ghost" size="icon" onClick={handleZoomOut}>
+                                    <ZoomOut className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="w-12" onClick={handleResetZoom}>
+                                    {Math.round(scale * 100)}%
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={handleZoomIn}>
+                                    <ZoomIn className="w-4 h-4" />
                                 </Button>
                             </div>
-                            <Button variant="outline" size="sm" onClick={handleCrop} className={isCropping ? "bg-muted" : ""}>
-                                <Crop className="w-4 h-4 mr-2" />
-                                {isCropping ? "取消裁剪" : "裁剪"}
-                            </Button>
-                            {isCropping && (
-                                <Button variant="default" size="sm" onClick={handleConfirmCrop} disabled={isCroppingLoading} className="bg-blue-600 hover:bg-blue-700 text-white border-transparent">
-                                    确定裁剪
-                                </Button>
-                            )}
-                            <div className="h-4 w-px bg-border mx-2" />
-                            <Button variant="ghost" size="icon" onClick={handleZoomOut}>
-                                <ZoomOut className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="w-12" onClick={handleResetZoom}>
-                                {Math.round(scale * 100)}%
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={handleZoomIn}>
-                                <ZoomIn className="w-4 h-4" />
-                            </Button>
-                        </div>
-                    </DialogTitle>
-                </DialogHeader>
+                        </DialogTitle>
+                    </DialogHeader>
 
-                <div
-                    ref={containerRef}
-                    className={`flex-1 overflow-hidden bg-black/5 flex items-center justify-center p-4 relative ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                >
-                    {isCropping && (
-                        <div
-                            style={{
-                                position: 'absolute',
-                                left: cropBox.x,
-                                top: cropBox.y,
-                                width: cropBox.width,
-                                height: cropBox.height,
-                                border: '2px dashed #3b82f6',
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                cursor: 'move',
-                                zIndex: 10,
-                            }}
-                            onMouseDown={handleCropMouseDown}
-                        >
+                    <div
+                        ref={containerRef}
+                        className={`flex-1 overflow-hidden bg-black/5 flex items-center justify-center p-4 relative ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
+                    >
+                        {isCropping && (
                             <div
                                 style={{
                                     position: 'absolute',
-                                    bottom: -5,
-                                    right: -5,
-                                    width: 15,
-                                    height: 15,
-                                    backgroundColor: '#3b82f6',
-                                    borderRadius: '50%',
-                                    cursor: 'se-resize'
+                                    left: cropBox.x,
+                                    top: cropBox.y,
+                                    width: cropBox.width,
+                                    height: cropBox.height,
+                                    border: '2px dashed #3b82f6',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    cursor: 'move',
+                                    zIndex: 10,
                                 }}
-                                onMouseDown={handleCropResizeMouseDown}
-                            />
-                        </div>
-                    )}
-                    {effectiveImageUrl ? (
-                        <div
-                            className="origin-center select-none"
-                            style={{
-                                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                                transition: isDragging ? "none" : "transform 0.2s ease-out"
-                            }}
-                        >
-                            <img
-                                src={effectiveImageUrl}
-                                alt="Full Preview"
-                                className="max-w-none shadow-lg border bg-white pointer-events-none"
-                                draggable={false}
+                                onMouseDown={handleCropMouseDown}
+                            >
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        bottom: -5,
+                                        right: -5,
+                                        width: 15,
+                                        height: 15,
+                                        backgroundColor: '#3b82f6',
+                                        borderRadius: '50%',
+                                        cursor: 'se-resize'
+                                    }}
+                                    onMouseDown={handleCropResizeMouseDown}
+                                />
+                            </div>
+                        )}
+                        {effectiveImageUrl ? (
+                            <div
+                                className="origin-center select-none"
                                 style={{
-                                    // Optional realistic constraints if max size is known
-                                    // maxWidth: '2000px'
+                                    transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                                    transition: isDragging ? "none" : "transform 0.2s ease-out"
+                                }}
+                            >
+                                <img
+                                    src={effectiveImageUrl}
+                                    alt="Full Preview"
+                                    className="max-w-none shadow-lg border bg-white pointer-events-none"
+                                    draggable={false}
+                                    style={{
+                                        // Optional realistic constraints if max size is known
+                                        // maxWidth: '2000px'
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            <div className="text-muted-foreground">暂无图片</div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {isAidcEditorOpen && editorUrl && (
+                <Dialog open={true} onOpenChange={(v) => !v && setIsAidcEditorOpen(false)}>
+                    <DialogContent className="max-w-[90vw] sm:max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] p-0 overflow-hidden flex flex-col">
+                        <DialogHeader className="p-4 border-b">
+                            <DialogTitle>AI 图片编辑</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex-1 w-full bg-muted">
+                            <iframe
+                                id="editor-Iframe"
+                                src={editorUrl}
+                                className="w-full h-full border-0"
+                                allow="clipboard-read; clipboard-write; display-capture"
+                                onLoad={() => {
+                                    const iframe = document.getElementById('editor-Iframe') as HTMLIFrameElement;
+                                    if (iframe && iframe.contentWindow) {
+                                        let schemaParsed = undefined;
+                                        if (value?.aidcSchema) {
+                                            try {
+                                                schemaParsed = typeof value.aidcSchema === "string" ? JSON.parse(value.aidcSchema) : value.aidcSchema;
+                                            } catch (e) {
+                                                console.error("Failed to parse templateJson schema", e);
+                                            }
+                                        }
+
+                                        const postData = {
+                                            sourceLang: 'zh',
+                                            targetLang: 'en',
+                                            templateJson: schemaParsed,
+                                            locale: 'zh-cn'
+                                        };
+                                        iframe.contentWindow.postMessage(JSON.stringify(postData), '*');
+                                    }
                                 }}
                             />
                         </div>
-                    ) : (
-                        <div className="text-muted-foreground">暂无图片</div>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog >
+                    </DialogContent>
+                </Dialog>
+            )
+            }
+        </>
     );
 }
 
