@@ -2,11 +2,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma-db";
 
+const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 export async function POST(request: Request) {
     try {
         const authHeader = request.headers.get("authorization");
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
         }
 
         const token = authHeader.split(" ")[1];
@@ -18,7 +24,7 @@ export async function POST(request: Request) {
         });
 
         if (!collectorToken || !collectorToken.isActive) {
-            return NextResponse.json({ error: "Invalid or inactive token" }, { status: 403 });
+            return NextResponse.json({ error: "Invalid or inactive token" }, { status: 403, headers: corsHeaders });
         }
 
         // Update last active
@@ -31,7 +37,7 @@ export async function POST(request: Request) {
         const { url, html, platform_type, product: clientParsedProduct } = body;
 
         if (!url) {
-            return NextResponse.json({ error: "Missing required fields: url" }, { status: 400 });
+            return NextResponse.json({ error: "Missing required fields: url" }, { status: 400, headers: corsHeaders });
         }
 
         let productData;
@@ -39,7 +45,7 @@ export async function POST(request: Request) {
         if (clientParsedProduct) {
             productData = clientParsedProduct;
         } else {
-            return NextResponse.json({ error: "Missing required fields: html or product data" }, { status: 400 });
+            return NextResponse.json({ error: "Missing required fields: html or product data" }, { status: 400, headers: corsHeaders });
         }
 
         // Additional cleanup if needed (already mostly done in parsers)
@@ -132,21 +138,17 @@ export async function POST(request: Request) {
             }
         });
 
-        return NextResponse.json({ success: true, data: product });
+        return NextResponse.json({ success: true, data: product }, { status: 200, headers: corsHeaders });
 
     } catch (error) {
         console.error("Collector API Error:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500, headers: corsHeaders });
     }
 }
 
 export async function OPTIONS(request: Request) {
     return new NextResponse(null, {
         status: 200,
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        },
+        headers: corsHeaders,
     });
 }
