@@ -4,6 +4,9 @@ import path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
 import crypto from "crypto";
+import imageenhan20190930, * as $imageenhan20190930 from '@alicloud/imageenhan20190930';
+import OpenApi, * as $OpenApi from '@alicloud/openapi-client';
+import Util, * as $Util from '@alicloud/tea-util';
 
 const execAsync = promisify(exec);
 
@@ -68,23 +71,83 @@ export async function POST(req: NextRequest) {
             console.warn("Upscayl binary failed, falling back to sharp:", execError.message);
         }
 
-        // Fallback to sharp if upscayl fails (e.g. no GPU)
+        // Fallback: If Upscayl failed, try Aliyun Image Enhancement first
         if (!upscaylSuccess) {
-            try {
-                const sharp = (await import("sharp")).default;
-                const metadata = await sharp(tmpIn).metadata();
-                const targetWidth = (width && !isNaN(width)) ? Number(width) : (metadata.width || 800) * 2;
-                await sharp(tmpIn)
-                    .resize(targetWidth, null, {
-                        kernel: "lanczos3",
-                        withoutEnlargement: false,
-                    })
-                    .png()
-                    .toFile(tmpOut);
-            } catch (sharpError: any) {
-                console.error("Sharp fallback also failed:", sharpError);
-                await fs.unlink(tmpIn).catch(() => { });
-                return NextResponse.json({ success: false, error: "Image upscaling failed: " + sharpError.message }, { status: 500 });
+            let aliyunSuccess = false;
+
+            // Need public URL for Aliyun API. If local, construct full URL
+            let aliyunImageUrl = imageUrl;
+            if (imageUrl.startsWith("/")) {
+                aliyunImageUrl = `https://erp.tikool.com${imageUrl}`;
+            }
+
+            const accessKeyId = process.env.ALIBABA_CLOUD_ACCESS_KEY_ID;
+            const accessKeySecret = process.env.ALIBABA_CLOUD_ACCESS_KEY_SECRET;
+            const endpoint = 'imageenhan.cn-shanghai.aliyuncs.com'; // Standard endpoint for this service
+
+            if (accessKeyId && accessKeySecret) {
+                try {
+                    console.log(`[Aliyun Upscale] Attempting API for: ${aliyunImageUrl}`);
+                    let config = new $OpenApi.Config({
+                        accessKeyId: accessKeyId,
+                        accessKeySecret: accessKeySecret,
+                        endpoint: endpoint,
+                    });
+
+                    let client = new imageenhan20190930(config);
+
+                    let makeSuperResolutionImageRequest = new $imageenhan20190930.MakeSuperResolutionImageRequest({
+                        url: aliyunImageUrl,
+                    });
+
+                    let runtime = new $Util.RuntimeOptions({
+                        readTimeout: 60000,
+                        connectTimeout: 60000,
+                        autoretry: true,
+                        maxAttempts: 3
+                    });
+
+                    let resp = await client.makeSuperResolutionImageWithOptions(makeSuperResolutionImageRequest, runtime);
+                    console.log("[Aliyun Upscale API Response]:", JSON.stringify(resp, null, 2));
+
+                    if (resp?.body?.data?.url) {
+                        const enhancedUrl = resp.body.data.url;
+                        const imageRes = await fetch(enhancedUrl);
+                        if (!imageRes.ok) throw new Error("Failed to download enhanced image from Aliyun");
+
+                        const arrayBuffer = await imageRes.arrayBuffer();
+                        const enhancedBuffer = Buffer.from(arrayBuffer);
+
+                        // Overwrite tmpOut with Aliyun result
+                        await fs.writeFile(tmpOut, enhancedBuffer);
+                        aliyunSuccess = true;
+                    }
+                } catch (aliyunError: any) {
+                    console.warn("[Aliyun Upscale] API failed:", aliyunError.message);
+                }
+            } else {
+                console.warn("[Aliyun Upscale] Missing credentials, skipping Aliyun fallback.");
+            }
+
+            // Final Fallback: sharp resize if Aliyun also failed (or bypassed)
+            if (!aliyunSuccess) {
+                console.log("[Sharp Upscale] Falling back to standard lanczos3 resize.");
+                try {
+                    const sharp = (await import("sharp")).default;
+                    const metadata = await sharp(tmpIn).metadata();
+                    const targetWidth = (width && !isNaN(width)) ? Number(width) : (metadata.width || 800) * 2;
+                    await sharp(tmpIn)
+                        .resize(targetWidth, null, {
+                            kernel: "lanczos3",
+                            withoutEnlargement: false,
+                        })
+                        .png()
+                        .toFile(tmpOut);
+                } catch (sharpError: any) {
+                    console.error("Sharp fallback also failed:", sharpError);
+                    await fs.unlink(tmpIn).catch(() => { });
+                    return NextResponse.json({ success: false, error: "Image upscaling failed completely: " + sharpError.message }, { status: 500 });
+                }
             }
         }
 

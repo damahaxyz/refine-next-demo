@@ -17,6 +17,7 @@
   "dependencies": {
     "@alicloud/alimt20181012": "^1.4.2",
     "@alicloud/credentials": "^2.4.4",
+    "@alicloud/imageenhan20190930": "^3.0.0",
     "@alicloud/openapi-client": "^0.4.15",
     "@alicloud/tea-typescript": "^1.8.0",
     "@alicloud/tea-util": "^1.4.11",
