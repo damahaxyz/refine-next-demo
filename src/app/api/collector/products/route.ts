@@ -37,7 +37,6 @@ export async function POST(request: Request) {
         let productData;
 
         if (clientParsedProduct) {
-            console.log("Using client-side parsed data");
             productData = clientParsedProduct;
         } else {
             return NextResponse.json({ error: "Missing required fields: html or product data" }, { status: 400 });
