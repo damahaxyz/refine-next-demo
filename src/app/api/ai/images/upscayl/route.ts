@@ -32,10 +32,15 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: "Invalid image URL format" }, { status: 400 });
         }
 
+        // Determine original extension
+        const urlStr = imageUrl.startsWith("http") ? imageUrl : `http://localhost${imageUrl}`;
+        let ext = path.extname(new URL(urlStr).pathname).toLowerCase();
+        if (!ext) ext = ".png"; // Default fallback
+
         // Write to temporary input file
         const tmpId = crypto.randomUUID();
-        const tmpIn = path.join(process.cwd(), "public", `tmp_in_${tmpId}.png`);
-        const tmpOut = path.join(process.cwd(), "public", `tmp_out_${tmpId}.png`);
+        const tmpIn = path.join(process.cwd(), "public", `tmp_in_${tmpId}${ext}`);
+        const tmpOut = path.join(process.cwd(), "public", `tmp_out_${tmpId}.png`); // Upscayl usually outputs PNG
 
         await fs.writeFile(tmpIn, buffer);
 
@@ -56,8 +61,12 @@ export async function POST(req: NextRequest) {
         if (useProxy) {
             try {
                 const formData = new FormData();
-                const blob = new Blob([new Uint8Array(buffer)], { type: "image/png" });
-                formData.append("image", blob, `tmp_in_${tmpId}.png`);
+                let mimeType = "image/png";
+                if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
+                if (ext === ".webp") mimeType = "image/webp";
+
+                const blob = new Blob([new Uint8Array(buffer)], { type: mimeType });
+                formData.append("image", blob, `tmp_in_${tmpId}${ext}`);
                 formData.append("model", model);
                 if (width && !isNaN(width)) {
                     formData.append("width", width.toString());
