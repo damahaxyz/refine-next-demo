@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         // Write to temporary input file
         const tmpId = crypto.randomUUID();
         const tmpIn = path.join(process.cwd(), "public", `tmp_in_${tmpId}${ext}`);
-        const tmpOut = path.join(process.cwd(), "public", `tmp_out_${tmpId}.png`); // Upscayl usually outputs PNG
+        const tmpOut = path.join(process.cwd(), "public", `tmp_out_${tmpId}.webp`); // Upscayl proxy now outputs WebP
 
         await fs.writeFile(tmpIn, buffer);
 
@@ -65,8 +65,10 @@ export async function POST(req: NextRequest) {
                 if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
                 if (ext === ".webp") mimeType = "image/webp";
 
-                const blob = new Blob([new Uint8Array(buffer)], { type: mimeType });
-                formData.append("image", blob, `tmp_in_${tmpId}${ext}`);
+                // Next.js (Node.js 18+) FormData has issues with raw Blobs corrupting binary sizes.
+                // We use a File object instead which correctly sets the filename and preserves binary data.
+                const file = new File([new Uint8Array(buffer)], `tmp_in_${tmpId}${ext}`, { type: mimeType });
+                formData.append("image", file);
                 formData.append("model", model);
                 if (width && !isNaN(width)) {
                     formData.append("width", width.toString());
@@ -106,7 +108,7 @@ export async function POST(req: NextRequest) {
                         kernel: "lanczos3",
                         withoutEnlargement: false,
                     })
-                    .png()
+                    .webp({ quality: 85 })
                     .toFile(tmpOut);
             } catch (sharpError: any) {
                 console.error("Sharp fallback also failed:", sharpError);
@@ -116,7 +118,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Read output and move to final destination
-        const filename = `${Date.now()}_upscaled.png`;
+        const filename = `${Date.now()}_upscaled.webp`;
         const saveDir = path.join(process.cwd(), "public", "products", productId);
         await fs.mkdir(saveDir, { recursive: true });
 
