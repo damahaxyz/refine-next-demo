@@ -4,9 +4,6 @@ import path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
 import crypto from "crypto";
-import imageenhan20190930, * as $imageenhan20190930 from '@alicloud/imageenhan20190930';
-import OpenApi, * as $OpenApi from '@alicloud/openapi-client';
-import Util, * as $Util from '@alicloud/tea-util';
 
 const execAsync = promisify(exec);
 
@@ -46,108 +43,94 @@ export async function POST(req: NextRequest) {
 
         await fs.writeFile(tmpIn, buffer);
 
-        // Determine platform-specific binary
-        const isLinux = process.platform === "linux";
-        const binName = isLinux ? "upscayl-bin-linux" : "upscayl-bin-mac";
-        const binPath = path.join(process.cwd(), "src", "lib", "upscayl", binName);
-        const modelsPath = path.join(process.cwd(), "src", "lib", "upscayl", "models");
-
-        // Execute Upscayl binary
-        // -i: input file
-        // -o: output file
-        // -m: models path
-        // -n: model name
-        let command = `"${binPath}" -i "${tmpIn}" -o "${tmpOut}" -m "${modelsPath}" -n ${model}`;
-
-        if (width && !isNaN(width)) {
-            command += ` -w ${width}`;
-        }
-
         let upscaylSuccess = false;
+
+        // 1. Try to ping the local proxy first (e.g., Mac via SSH tunnel)
+        let useProxy = false;
         try {
-            await execAsync(command);
-            upscaylSuccess = true;
-        } catch (execError: any) {
-            console.warn("Upscayl binary failed, falling back to sharp:", execError.message);
+            const pingRes = await fetch("http://127.0.0.1:3001/ping", { method: "GET", signal: AbortSignal.timeout(2000) });
+            if (pingRes.ok) {
+                useProxy = true;
+                console.log("[Upscayl] Local proxy detected at 127.0.0.1:3001");
+            }
+        } catch (e) {
+            console.log("[Upscayl] Local proxy not reachable.");
         }
 
-        // Fallback: If Upscayl failed, try Aliyun Image Enhancement first
+        if (useProxy) {
+            try {
+                const formData = new FormData();
+                const blob = new Blob([new Uint8Array(buffer)], { type: "image/png" });
+                formData.append("image", blob, `tmp_in_${tmpId}.png`);
+                formData.append("model", model);
+                if (width && !isNaN(width)) {
+                    formData.append("width", width.toString());
+                }
+
+                console.log("[Upscayl] Forwarding image to local proxy...");
+                const proxyRes = await fetch("http://127.0.0.1:3001/upscayl", {
+                    method: "POST",
+                    body: formData,
+                    // No timeout here because upscaling takes time
+                });
+
+                if (proxyRes.ok) {
+                    const arrayBuffer = await proxyRes.arrayBuffer();
+                    await fs.writeFile(tmpOut, Buffer.from(arrayBuffer));
+                    upscaylSuccess = true;
+                    console.log("[Upscayl] Proxy successfully upscaled the image.");
+                } else {
+                    console.warn(`[Upscayl] Proxy failed with status: ${proxyRes.status}`);
+                    const errText = await proxyRes.text();
+                    console.warn(`[Upscayl] Proxy error: ${errText}`);
+                }
+            } catch (e: any) {
+                console.warn("[Upscayl] Error calling proxy:", e.message);
+            }
+        }
+
+        // 2. If proxy failed or not available, try the local binary (e.g. for native dev)
         if (!upscaylSuccess) {
-            let aliyunSuccess = false;
+            // Determine platform-specific binary
+            const isLinux = process.platform === "linux";
+            const binName = isLinux ? "upscayl-bin-linux" : "upscayl-bin-mac";
+            const binPath = path.join(process.cwd(), "src", "lib", "upscayl", binName);
+            const modelsPath = path.join(process.cwd(), "src", "lib", "upscayl", "models");
 
-            // Need public URL for Aliyun API. If local, construct full URL
-            let aliyunImageUrl = imageUrl;
-            if (imageUrl.startsWith("/")) {
-                aliyunImageUrl = `https://erp.tikool.com${imageUrl}`;
+            // Execute Upscayl binary
+            let command = `"${binPath}" -i "${tmpIn}" -o "${tmpOut}" -m "${modelsPath}" -n ${model}`;
+
+            if (width && !isNaN(width)) {
+                command += ` -w ${width}`;
             }
 
-            const accessKeyId = process.env.ALIBABA_CLOUD_ACCESS_KEY_ID;
-            const accessKeySecret = process.env.ALIBABA_CLOUD_ACCESS_KEY_SECRET;
-            const endpoint = 'imageenhan.cn-shanghai.aliyuncs.com'; // Standard endpoint for this service
-
-            if (accessKeyId && accessKeySecret) {
-                try {
-                    console.log(`[Aliyun Upscale] Attempting API for: ${aliyunImageUrl}`);
-                    let config = new $OpenApi.Config({
-                        accessKeyId: accessKeyId,
-                        accessKeySecret: accessKeySecret,
-                        endpoint: endpoint,
-                    });
-
-                    let client = new imageenhan20190930(config);
-
-                    let makeSuperResolutionImageRequest = new $imageenhan20190930.MakeSuperResolutionImageRequest({
-                        url: aliyunImageUrl,
-                    });
-
-                    let runtime = new $Util.RuntimeOptions({
-                        readTimeout: 60000,
-                        connectTimeout: 60000,
-                        autoretry: true,
-                        maxAttempts: 3
-                    });
-
-                    let resp = await client.makeSuperResolutionImageWithOptions(makeSuperResolutionImageRequest, runtime);
-                    console.log("[Aliyun Upscale API Response]:", JSON.stringify(resp, null, 2));
-
-                    if (resp?.body?.data?.url) {
-                        const enhancedUrl = resp.body.data.url;
-                        const imageRes = await fetch(enhancedUrl);
-                        if (!imageRes.ok) throw new Error("Failed to download enhanced image from Aliyun");
-
-                        const arrayBuffer = await imageRes.arrayBuffer();
-                        const enhancedBuffer = Buffer.from(arrayBuffer);
-
-                        // Overwrite tmpOut with Aliyun result
-                        await fs.writeFile(tmpOut, enhancedBuffer);
-                        aliyunSuccess = true;
-                    }
-                } catch (aliyunError: any) {
-                    console.warn("[Aliyun Upscale] API failed:", aliyunError.message);
-                }
-            } else {
-                console.warn("[Aliyun Upscale] Missing credentials, skipping Aliyun fallback.");
+            try {
+                await execAsync(command);
+                upscaylSuccess = true;
+                console.log("[Upscayl] Local native binary successfully upscaled the image.");
+            } catch (execError: any) {
+                console.warn("[Upscayl] Native binary failed:", execError.message);
             }
+        }
 
-            // Final Fallback: sharp resize if Aliyun also failed (or bypassed)
-            if (!aliyunSuccess) {
-                console.log("[Sharp Upscale] Falling back to standard lanczos3 resize.");
-                try {
-                    const sharp = (await import("sharp")).default;
-                    const metadata = await sharp(tmpIn).metadata();
-                    const targetWidth = (width && !isNaN(width)) ? Number(width) : (metadata.width || 800) * 2;
-                    await sharp(tmpIn)
-                        .resize(targetWidth, null, {
-                            kernel: "lanczos3",
-                            withoutEnlargement: false,
-                        })
-                        .png()
-                        .toFile(tmpOut);
-                } catch (sharpError: any) {
-                    console.error("Sharp fallback also failed:", sharpError);
-                    await fs.unlink(tmpIn).catch(() => { });
-                    return NextResponse.json({ success: false, error: "Image upscaling failed completely: " + sharpError.message }, { status: 500 });
-                }
+        // 3. Final Fallback: sharp resize if everything else failed
+        if (!upscaylSuccess) {
+            console.log("[Sharp Upscale] Falling back to standard lanczos3 resize.");
+            try {
+                const sharp = (await import("sharp")).default;
+                const metadata = await sharp(tmpIn).metadata();
+                const targetWidth = (width && !isNaN(width)) ? Number(width) : (metadata.width || 800) * 2;
+                await sharp(tmpIn)
+                    .resize(targetWidth, null, {
+                        kernel: "lanczos3",
+                        withoutEnlargement: false,
+                    })
+                    .png()
+                    .toFile(tmpOut);
+            } catch (sharpError: any) {
+                console.error("Sharp fallback also failed:", sharpError);
+                await fs.unlink(tmpIn).catch(() => { });
+                return NextResponse.json({ success: false, error: "Image upscaling failed completely: " + sharpError.message }, { status: 500 });
             }
         }
 
