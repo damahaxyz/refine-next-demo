@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
 
         const newUrl = `/products/${productId}/${filename}`;
 
-        return NextResponse.json({ success: true, data: { url: newUrl } });
+        return NextResponse.json({ success: true, data: { url: newUrl, type: upscaylSuccess ? "upscayl" : "sharp" } });
     } catch (error: any) {
         console.error("Upscayl API Error:", error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
