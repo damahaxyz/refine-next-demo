@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
-import { exec } from "child_process";
-import { promisify } from "util";
 import crypto from "crypto";
-
-const execAsync = promisify(exec);
 
 export async function POST(req: NextRequest) {
     try {
@@ -89,31 +85,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 2. If proxy failed or not available, try the local binary (e.g. for native dev)
-        if (!upscaylSuccess) {
-            // Determine platform-specific binary
-            const isLinux = process.platform === "linux";
-            const binName = isLinux ? "upscayl-bin-linux" : "upscayl-bin-mac";
-            const binPath = path.join(process.cwd(), "src", "lib", "upscayl", binName);
-            const modelsPath = path.join(process.cwd(), "src", "lib", "upscayl", "models");
-
-            // Execute Upscayl binary
-            let command = `"${binPath}" -i "${tmpIn}" -o "${tmpOut}" -m "${modelsPath}" -n ${model}`;
-
-            if (width && !isNaN(width)) {
-                command += ` -w ${width}`;
-            }
-
-            try {
-                await execAsync(command);
-                upscaylSuccess = true;
-                console.log("[Upscayl] Local native binary successfully upscaled the image.");
-            } catch (execError: any) {
-                console.warn("[Upscayl] Native binary failed:", execError.message);
-            }
-        }
-
-        // 3. Final Fallback: sharp resize if everything else failed
+        // 2. Fallback: sharp resize if proxy failed
         if (!upscaylSuccess) {
             console.log("[Sharp Upscale] Falling back to standard lanczos3 resize.");
             try {
