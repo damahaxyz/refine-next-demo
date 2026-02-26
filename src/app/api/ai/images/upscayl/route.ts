@@ -48,8 +48,9 @@ export async function POST(req: NextRequest) {
 
         // 1. Try to ping the local proxy first (e.g., Mac via SSH tunnel)
         let useProxy = false;
+        const proxyUrl = process.env.UPSCAYL_PROXY_URL || "http://127.0.0.1:3001";
         try {
-            const pingRes = await fetch("http://127.0.0.1:3001/ping", { method: "GET", signal: AbortSignal.timeout(2000) });
+            const pingRes = await fetch(`${proxyUrl}/ping`, { method: "GET", signal: AbortSignal.timeout(2000) });
             if (pingRes.ok) {
                 useProxy = true;
                 console.log("[Upscayl] Local proxy detected at 127.0.0.1:3001");
@@ -74,8 +75,8 @@ export async function POST(req: NextRequest) {
                     formData.append("width", width.toString());
                 }
 
-                console.log("[Upscayl] Forwarding image to local proxy...");
-                const proxyRes = await fetch("http://127.0.0.1:3001/upscayl", {
+                console.log(`[Upscayl] Forwarding image to local proxy at ${proxyUrl}...`);
+                const proxyRes = await fetch(`${proxyUrl}/upscayl`, {
                     method: "POST",
                     body: formData,
                     // No timeout here because upscaling takes time
