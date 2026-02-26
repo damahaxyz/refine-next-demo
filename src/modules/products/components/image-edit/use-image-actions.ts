@@ -45,7 +45,7 @@ export function useImageActions({ value, onChange, productId, effectiveImageUrl 
         }
     };
 
-    const handleUpscale = async (cachedUpscaylWidth: string) => {
+    const handleUpscale = async (cachedUpscaylWidth: string, model: string = "ultrasharp-4x") => {
         if (!effectiveImageUrl || !onChange) return;
 
         const targetWidth = cachedUpscaylWidth ? parseInt(cachedUpscaylWidth, 10) : undefined;
@@ -58,7 +58,7 @@ export function useImageActions({ value, onChange, productId, effectiveImageUrl 
                 values: {
                     imageUrl: effectiveImageUrl,
                     productId: productId || "new",
-                    model: "ultrasharp-4x",
+                    model,
                     ...(targetWidth && !isNaN(targetWidth) ? { width: targetWidth } : {}),
                 },
             });

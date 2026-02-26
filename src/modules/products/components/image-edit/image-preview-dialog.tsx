@@ -1,5 +1,9 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Languages, ZoomIn, ZoomOut, Crop, Wand2, Settings2, Loader2, Edit, Edit2 } from "lucide-react";
 import { ImageObject } from "../../types";
@@ -12,7 +16,7 @@ export interface ImagePreviewDialogProps {
     isUpscaling: boolean;
     isCroppingLoading: boolean;
     handleTranslate: () => void;
-    handleUpscale: (cachedUpscaylWidth: string) => void;
+    handleUpscale: (cachedUpscaylWidth: string, model: string) => void;
     handleConfirmCrop: (
         scale: number,
         position: { x: number, y: number },
@@ -50,11 +54,16 @@ export function ImagePreviewDialog({
     const cropStartBox = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
     const [cachedUpscaylWidth, setCachedUpscaylWidth] = useState<string>("1200");
+    const [cachedUpscaylModel, setCachedUpscaylModel] = useState<string>("ultrasharp-4x");
 
     useEffect(() => {
         const savedWidth = localStorage.getItem("_refine_next_upscayl_width");
         if (savedWidth) {
             setCachedUpscaylWidth(savedWidth);
+        }
+        const savedModel = localStorage.getItem("_refine_next_upscayl_model");
+        if (savedModel) {
+            setCachedUpscaylModel(savedModel);
         }
     }, []);
 
@@ -143,18 +152,18 @@ export function ImagePreviewDialog({
         handleConfirmCrop(scale, position, cropBox, nodeRef.current, () => setIsCropping(false));
     }
 
-    const handleUpscaylWidthConfig = () => {
-        const targetWidthInput = prompt(`请输入期望的最终图片宽度(像素)，留空则默认按 4x 比例放大：\n当前预设：${cachedUpscaylWidth}`, cachedUpscaylWidth);
-        if (targetWidthInput === null) return; // User cancelled
-        const parsedWidth = targetWidthInput.trim() ? parseInt(targetWidthInput.trim(), 10) : undefined;
-
-        if (parsedWidth && !isNaN(parsedWidth)) {
-            localStorage.setItem("_refine_next_upscayl_width", parsedWidth.toString());
-            setCachedUpscaylWidth(parsedWidth.toString());
-        } else if (!targetWidthInput.trim()) {
+    const handleWidthChange = (val: string) => {
+        setCachedUpscaylWidth(val);
+        if (val) {
+            localStorage.setItem("_refine_next_upscayl_width", val);
+        } else {
             localStorage.removeItem("_refine_next_upscayl_width");
-            setCachedUpscaylWidth("");
         }
+    };
+
+    const handleModelChange = (val: string) => {
+        setCachedUpscaylModel(val);
+        localStorage.setItem("_refine_next_upscayl_model", val);
     };
 
     return (
@@ -186,7 +195,7 @@ export function ImagePreviewDialog({
                                         )}
                                     </div>
                                     <div className="flex bg-background border rounded-md overflow-hidden">
-                                        <Button variant="ghost" size="sm" onClick={() => handleUpscale(cachedUpscaylWidth)} disabled={isUpscaling} className="border-none rounded-none rounded-l-md pr-2">
+                                        <Button variant="ghost" size="sm" onClick={() => handleUpscale(cachedUpscaylWidth, cachedUpscaylModel)} disabled={isUpscaling} className="border-none rounded-none rounded-l-md pr-2">
                                             {isUpscaling ? (
                                                 <span className="w-4 h-4 mr-2 block rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
                                             ) : (
@@ -195,16 +204,56 @@ export function ImagePreviewDialog({
                                             变高清 {cachedUpscaylWidth ? `(${cachedUpscaylWidth}px)` : "(默认 4x)"}
                                         </Button>
                                         <div className="w-px bg-border my-1" />
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 border-none rounded-none rounded-r-md"
-                                            onClick={handleUpscaylWidthConfig}
-                                            title="设置放大目标宽度"
-                                            disabled={isUpscaling}
-                                        >
-                                            <Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
-                                        </Button>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 border-none rounded-none rounded-r-md"
+                                                    title="变高清设置"
+                                                    disabled={isUpscaling}
+                                                >
+                                                    <Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-64" align="end" onClick={(e) => e.stopPropagation()}>
+                                                <div className="grid gap-4">
+                                                    <div className="space-y-2">
+                                                        <h4 className="font-medium leading-none">变高清设置</h4>
+                                                        <p className="text-sm text-muted-foreground">配置 Upscayl 算法模型和宽度</p>
+                                                    </div>
+                                                    <div className="grid gap-3">
+                                                        <div className="grid grid-cols-3 items-center gap-4">
+                                                            <Label htmlFor="width">目标宽度</Label>
+                                                            <Input
+                                                                id="width"
+                                                                value={cachedUpscaylWidth}
+                                                                onChange={(e) => handleWidthChange(e.target.value)}
+                                                                className="col-span-2 h-8"
+                                                                placeholder="如: 1200 (默认4x)"
+                                                            />
+                                                        </div>
+                                                        <div className="grid grid-cols-3 items-center gap-4">
+                                                            <Label htmlFor="model">算法模型</Label>
+                                                            <Select value={cachedUpscaylModel} onValueChange={handleModelChange}>
+                                                                <SelectTrigger className="col-span-2 h-8">
+                                                                    <SelectValue placeholder="选择模型" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="ultrasharp-4x">UltraSharp 4x</SelectItem>
+                                                                    <SelectItem value="remacri-4x">Remacri 4x</SelectItem>
+                                                                    <SelectItem value="high-fidelity-4x">High Fidelity 4x</SelectItem>
+                                                                    <SelectItem value="digital-art-4x">Digital Art 4x</SelectItem>
+                                                                    <SelectItem value="upscayl-standard-4x">Standard 4x</SelectItem>
+                                                                    <SelectItem value="upscayl-lite-4x">Lite 4x</SelectItem>
+                                                                    <SelectItem value="ultramix-balanced-4x">Ultramix Balanced 4x</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
                                     </div>
                                 </>)}
                             <Button variant="outline" size="sm" onClick={handleCrop} className={isCropping ? "bg-muted" : ""}>
