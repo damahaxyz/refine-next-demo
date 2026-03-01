@@ -38,7 +38,7 @@ export const ProductList = () => {
 
     return (
         <Page>
-            <PageHeader title="Products" primaryButtons={<ProductPrimaryActions />}
+            <PageHeader title="商品管理" primaryButtons={<ProductPrimaryActions />}
             />
             <DataTableToolbar table={table} />
             <DataTable<Product> table={table} />

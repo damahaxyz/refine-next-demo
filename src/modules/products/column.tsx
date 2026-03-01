@@ -54,6 +54,9 @@ export const useProductColumns = (): ColumnDef<Product>[] => {
                 filterKey: "title",
                 filterType: "text",
                 filterOperator: "contains",
+                filterComponentProps: {
+                    placeholder: "搜索标题",
+                },
             }
         },
         {
@@ -86,6 +89,7 @@ export const useProductColumns = (): ColumnDef<Product>[] => {
                 filterType: "select",
                 filterOperator: "eq",
                 filterComponentProps: {
+                    placeholder: "状态",
                     options: [
                         { label: "Draft", value: "draft" },
                         { label: "Translated", value: "translated" },

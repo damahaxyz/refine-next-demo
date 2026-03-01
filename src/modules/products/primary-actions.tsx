@@ -11,7 +11,7 @@ export const ProductPrimaryActions = () => {
         <div className="flex gap-2">
             <CanAccess resource="products" action="create">
                 <Button size="sm" onClick={() => { setCurrentRow(null); setOpen("product-edit"); }}>
-                    <Plus className="mr-2 h-4 w-4" /> Import Product
+                    <Plus className="mr-2 h-4 w-4" /> 导入商品
                 </Button>
             </CanAccess>
         </div>

@@ -56,7 +56,7 @@ export function ImageExternalEditor({ open, onOpenChange, value, onChange, produ
                             const newImg = {
                                 ...valueRef.current,
                                 processedUrl: resData.url,
-                                editorSchema: JSON.stringify(data[0].psd),
+                                editorSchema: data[0].psd,
                             } as ImageObject;
                             onChangeRef.current(newImg);
                             toast.success("二次编辑保存成功");
